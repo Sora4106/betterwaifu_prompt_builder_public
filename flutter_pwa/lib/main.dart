@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:math';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 
 import 'app_version.dart';
@@ -21,9 +21,11 @@ import 'hair_style_package_data.dart';
 import 'public_outfit_reference_data.dart';
 import 'object_catalog_data.dart';
 import 'prompt_package_data.dart';
+import 'ui_language.dart';
 
 const _storageKey = 'betterwaifu_prompt_builder_state_v1';
 const _lastSeenVersionKey = 'betterwaifu_prompt_builder_last_seen_version';
+const _uiLanguageStorageKey = 'betterwaifu_prompt_builder_ui_language';
 const _characterNameListUrl =
     'https://huggingface.co/spaces/flagrantia/character_select_saa';
 const _unregisteredPositiveTagInboxEnabled = false;
@@ -929,12 +931,16 @@ class _HairGradientStyle {
   const _HairGradientStyle({
     required this.id,
     required this.zh,
+    required this.en,
     required this.hint,
+    required this.hintEn,
   });
 
   final String id;
   final String zh;
+  final String en;
   final String hint;
+  final String hintEn;
 }
 
 const _defaultHairGradientStyle = 'linear';
@@ -946,32 +952,44 @@ const _hairGradientStyles = <_HairGradientStyle>[
   _HairGradientStyle(
     id: 'linear',
     zh: '全髮線性漸層',
+    en: 'Full linear gradient',
     hint: '色 1 從髮根平滑過渡至色 2',
+    hintEn: 'Color 1 blends smoothly from the roots into color 2',
   ),
   _HairGradientStyle(
     id: 'tips',
     zh: '髮尾漸層',
+    en: 'Gradient tips',
     hint: '色 1 為主髮色，色 2 出現在髮尾',
+    hintEn: 'Color 1 is the main hair color and color 2 appears at the tips',
   ),
   _HairGradientStyle(
     id: 'roots',
     zh: '髮根漸層',
+    en: 'Root gradient',
     hint: '色 1 為主髮色，色 2 出現在髮根',
+    hintEn: 'Color 1 is the main hair color and color 2 appears at the roots',
   ),
   _HairGradientStyle(
     id: 'inner',
     zh: '內層挑染',
+    en: 'Inner-layer highlight',
     hint: '色 1 為外層，色 2 出現在內層髮束',
+    hintEn: 'Color 1 is the outer layer and color 2 appears in the inner strands',
   ),
   _HairGradientStyle(
     id: 'split',
     zh: '左右分色',
+    en: 'Split color',
     hint: '左右兩側分別使用色 1 與色 2',
+    hintEn: 'The left and right sides use colors 1 and 2 respectively',
   ),
   _HairGradientStyle(
     id: 'underlayer',
     zh: '底層雙色',
+    en: 'Two-tone underlayer',
     hint: '色 1 為表層，色 2 為下層髮色',
+    hintEn: 'Color 1 is the outer layer and color 2 is the underlayer',
   ),
 ];
 
@@ -5542,6 +5560,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
   double _pageBottomPadding = _basePageBottomPadding;
   String _globalTagQuery = '';
   bool _isPreparingCatalog = true;
+  AppUiLanguage _uiLanguage = AppUiLanguage.traditionalChinese;
+  bool _shouldAskForUiLanguage = false;
+  bool get _isEnglishUi => _uiLanguage == AppUiLanguage.english;
   static const double _minimumPromptWeight = 0.50;
   static const double _maximumPromptWeight = 1.50;
   static const double _defaultPromptWeight = 1.05;
@@ -5614,6 +5635,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
       unique.putIfAbsent(key, () => tag);
     }
     final tags = List<TagItem>.unmodifiable(unique.values);
+    UiLanguageController.registerTagLabels(
+      tags.map((tag) => MapEntry(tag.zh, tag.en)),
+    );
     final byId = <String, TagItem>{};
     final byEnglish = <String, TagItem>{};
     final byGroup = <String, List<TagItem>>{};
@@ -9793,6 +9817,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
   @override
   void initState() {
     super.initState();
+    _initializeUiLanguage();
     _checkForVersionUpdate();
     _search.addListener(_scheduleSearchRefresh);
     _beforeUnloadSubscription = html.window.onBeforeUnload.listen((_) {
@@ -9808,8 +9833,82 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
         _restore();
         if (!mounted) return;
         setState(() => _isPreparingCatalog = false);
+        if (_shouldAskForUiLanguage) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _showUiLanguagePicker(firstRun: true);
+          });
+        }
       });
     });
+  }
+
+  void _initializeUiLanguage() {
+    final saved = html.window.localStorage[_uiLanguageStorageKey];
+    _shouldAskForUiLanguage = saved == null;
+    _uiLanguage = saved == null
+        ? UiLanguageController.fromBrowserLanguage(html.window.navigator.language)
+        : UiLanguageController.fromStorageValue(saved);
+    UiLanguageController.setLanguage(_uiLanguage);
+  }
+
+  void _setUiLanguage(AppUiLanguage language) {
+    final changed = _uiLanguage != language;
+    UiLanguageController.setLanguage(language);
+    html.window.localStorage[_uiLanguageStorageKey] =
+        UiLanguageController.storageValue(language);
+    if (changed) setState(() => _uiLanguage = language);
+  }
+
+  void _showUiLanguagePicker({bool firstRun = false}) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: !firstRun,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(UiLanguageController.choose('選擇語言', 'Choose language')),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                UiLanguageController.choose(
+                  '初次開啟時會依瀏覽器的偏好語言預設；之後可隨時從右上角切換。',
+                  'The initial default follows your browser language. You can switch it any time from the top-right menu.',
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    _setUiLanguage(AppUiLanguage.traditionalChinese);
+                    Navigator.pop(dialogContext);
+                  },
+                  icon: const Icon(Icons.translate),
+                  label: Text(UiLanguageController.choose(
+                    '繁體中文 / Traditional Chinese',
+                    'Traditional Chinese',
+                  )),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    _setUiLanguage(AppUiLanguage.english);
+                    Navigator.pop(dialogContext);
+                  },
+                  icon: const Icon(Icons.language),
+                  label: const Text('English'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _scheduleSearchRefresh() {
@@ -12005,7 +12104,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
             ),
           ],
         ),
-      ),
+      ).localized(),
     );
   }
 
@@ -12670,18 +12769,18 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
             TextField(
               controller: englishController,
               autofocus: true,
-              decoration: const InputDecoration(
+              decoration: (const InputDecoration(
                 labelText: '英文標籤',
                 hintText: '例如 blurry 或 bad composition',
-              ),
+              )).localized(),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: chineseController,
-              decoration: const InputDecoration(
+              decoration: (const InputDecoration(
                 labelText: '中文翻譯',
                 hintText: '例如 模糊 或 構圖不佳',
-              ),
+              )).localized(),
             ),
           ],
         ),
@@ -15918,7 +16017,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: '組合名稱'),
+          decoration: (const InputDecoration(labelText: '組合名稱')).localized(),
         ),
         actions: [
           TextButton(
@@ -16317,13 +16416,18 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
     VoidCallback? afterSelected,
   }) {
     final shortName = _compactAnimeChoiceLabel(anime);
+    final displayName = _isEnglishUi && anime.animeEn.trim().isNotEmpty
+        ? anime.animeEn.trim()
+        : shortName;
     return Tooltip(
-      message: '${anime.animeZh}\n簡稱：$shortName',
+      message: _isEnglishUi
+          ? anime.animeEn.trim().ifEmpty(shortName)
+          : '${anime.animeZh}\n簡稱：$shortName',
       child: SizedBox.expand(
         child: ChoiceChip(
           labelPadding: const EdgeInsets.symmetric(horizontal: 6),
           label: Text(
-            shortName,
+            displayName,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -16344,13 +16448,25 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
     CatalogCharacter character, {
     VoidCallback? afterSelected,
   }) {
-    final hasUnit = character.unitZh.trim().isNotEmpty;
+    final displayName = _isEnglishUi && character.characterEn.trim().isNotEmpty
+        ? character.characterEn.trim()
+        : character.characterZh;
+    final displayUnit = _isEnglishUi && character.unitEn.trim().isNotEmpty
+        ? character.unitEn.trim()
+        : character.unitZh;
+    final hasUnit = displayUnit.isNotEmpty;
     return Tooltip(
-      message: [
-        character.characterZh,
-        if (hasUnit) character.unitZh,
-        _catalogCharacterPromptLabel(character),
-      ].join('\n'),
+      message: _isEnglishUi
+          ? [
+              character.characterEn.ifEmpty(character.characterZh),
+              if (character.unitEn.trim().isNotEmpty) character.unitEn,
+              _catalogCharacterPromptLabel(character),
+            ].join('\n')
+          : [
+              character.characterZh,
+              if (hasUnit) character.unitZh,
+              _catalogCharacterPromptLabel(character),
+            ].join('\n'),
       child: SizedBox.expand(
         child: ChoiceChip(
           labelPadding: const EdgeInsets.symmetric(horizontal: 5),
@@ -16358,14 +16474,14 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                character.characterZh,
+                displayName,
                 textAlign: TextAlign.center,
                 maxLines: hasUnit ? 1 : 2,
                 overflow: TextOverflow.ellipsis,
               ),
               if (hasUnit)
                 Text(
-                  character.unitZh,
+                  displayUnit,
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -17405,50 +17521,50 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                   Expanded(
                       child: TextField(
                           controller: animeZh,
-                          decoration:
-                              const InputDecoration(labelText: '動漫中文名稱'))),
+                          decoration: (const InputDecoration(
+                              labelText: '動漫中文名稱')).localized())),
                   const SizedBox(width: 10),
                   Expanded(
                       child: TextField(
                           controller: animeEn,
-                          decoration: const InputDecoration(
-                              labelText: 'Anime English name')))
+                          decoration: (const InputDecoration(
+                              labelText: 'Anime English name')).localized()))
                 ]),
                 const SizedBox(height: 10),
                 TextField(
                     controller: animeTag,
-                    decoration: const InputDecoration(
-                        labelText: 'Anime tag', hintText: '留白會由英文名稱產生')),
+                    decoration: (const InputDecoration(
+                        labelText: 'Anime tag', hintText: '留白會由英文名稱產生')).localized()),
                 const SizedBox(height: 10),
                 Row(children: [
                   Expanded(
                       child: TextField(
                           controller: characterZh,
-                          decoration:
-                              const InputDecoration(labelText: '角色中文名稱'))),
+                          decoration: (const InputDecoration(
+                              labelText: '角色中文名稱')).localized())),
                   const SizedBox(width: 10),
                   Expanded(
                       child: TextField(
                           controller: characterEn,
-                          decoration: const InputDecoration(
-                              labelText: 'Character English name')))
+                          decoration: (const InputDecoration(
+                              labelText: 'Character English name')).localized()))
                 ]),
                 const SizedBox(height: 10),
                 TextField(
                     controller: characterTag,
-                    decoration: const InputDecoration(
-                        labelText: 'Character tag', hintText: '留白會由英文名稱產生')),
+                    decoration: (const InputDecoration(
+                        labelText: 'Character tag', hintText: '留白會由英文名稱產生')).localized()),
                 const SizedBox(height: 10),
                 TextField(
                     controller: traitsZh,
-                    decoration: const InputDecoration(
-                        labelText: '角色特徵中文', hintText: '粉紅頭髮, 呆毛, 綠眼睛')),
+                    decoration: (const InputDecoration(
+                        labelText: '角色特徵中文', hintText: '粉紅頭髮, 呆毛, 綠眼睛')).localized()),
                 const SizedBox(height: 10),
                 TextField(
                     controller: traitsEn,
-                    decoration: const InputDecoration(
+                    decoration: (const InputDecoration(
                         labelText: 'Character traits English',
-                        hintText: 'pink hair, ahoge, green eyes')),
+                        hintText: 'pink hair, ahoge, green eyes')).localized()),
                 const SizedBox(height: 8),
                 const Align(
                     alignment: Alignment.centerLeft,
@@ -17996,7 +18112,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
     final apply = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(preset.name),
+        title: Text(_outfitReferenceName(preset)),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620, maxHeight: 560),
           child: SingleChildScrollView(
@@ -18004,15 +18120,19 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(preset.description),
+                Text(_outfitReferenceDescription(preset)),
                 const SizedBox(height: 8),
-                Text('配色：${preset.palette}',
+                Text(UiLanguageController.choose(
+                    '配色：${_outfitReferencePalette(preset)}',
+                    'Palette: ${_outfitReferencePalette(preset)}'),
                     style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 14),
-                const Text('中文組合預覽',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
-                SelectableText(preview.map((tag) => tag.zh).join('。')),
+                if (!_isEnglishUi) ...[
+                  const SizedBox(height: 14),
+                  const Text('中文組合預覽',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  SelectableText(preview.map((tag) => tag.zh).join('。')),
+                ],
                 const SizedBox(height: 14),
                 const Text('英文組合預覽',
                     style: TextStyle(fontWeight: FontWeight.w700)),
@@ -18021,7 +18141,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                 if (resolution.missing.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   Text(
-                    '尚缺少：${resolution.missing.join('、')}',
+                    UiLanguageController.choose(
+                      '尚缺少：${resolution.missing.join('、')}',
+                      'Missing: ${resolution.missing.join(', ')}',
+                    ),
                     style: TextStyle(
                         color: Theme.of(context).colorScheme.error,
                         fontWeight: FontWeight.w700),
@@ -18041,7 +18164,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                 ? () => Navigator.pop(dialogContext, true)
                 : null,
             icon: const Icon(Icons.checkroom_outlined),
-            label: Text('套用到人物 ${personIndex + 1}'),
+            label: Text(_applyToPersonLabel(personIndex)),
           ),
         ],
       ),
@@ -18121,7 +18244,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                     runSpacing: 6,
                     children: preview
                         .map((tag) => Chip(
-                              label: Text('${tag.zh} · ${tag.en}'),
+                              label: Text(
+                                UiLanguageController.tagLabel(tag.zh, tag.en),
+                              ),
                               visualDensity: VisualDensity.compact,
                             ))
                         .toList(),
@@ -18138,7 +18263,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                   hintText: preview.isEmpty
                       ? '例如白色蕾絲洋裝'
                       : preview.map((tag) => tag.zh).join('、'),
-                ),
+                ).localized(),
                 onSubmitted: (value) =>
                     Navigator.pop(dialogContext, value.trim()),
               ),
@@ -18211,7 +18336,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                       runSpacing: 6,
                       children: poseTags
                           .map((tag) => Chip(
-                                label: Text('${tag.zh} · ${tag.en}'),
+                                label: Text(
+                                  UiLanguageController.tagLabel(tag.zh, tag.en),
+                                ),
                                 visualDensity: VisualDensity.compact,
                               ))
                           .toList(),
@@ -18231,10 +18358,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                 controller: nameController,
                 autofocus: true,
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
+                decoration: (const InputDecoration(
                   labelText: '姿勢組合名稱',
                   hintText: '例如坐椅子抬腿微笑',
-                ),
+                )).localized(),
                 onSubmitted: (value) =>
                     Navigator.pop(dialogContext, value.trim()),
               ),
@@ -18319,24 +18446,24 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                               autofocus: existing == null,
                               minLines: 2,
                               maxLines: 3,
-                              decoration: const InputDecoration(
+                              decoration: (const InputDecoration(
                                 labelText:
                                     '\u7D44\u5408\u4E2D\u6587\u540D\u7A31',
                                 hintText:
                                     '\u4F8B\u5982\u5750\u5728\u6905\u5B50\u4E0A\u63A1\u88D9',
-                              ),
+                              )).localized(),
                             ),
                             const SizedBox(height: 10),
                             TextField(
                               controller: extra,
                               minLines: 3,
                               maxLines: 5,
-                              decoration: const InputDecoration(
+                              decoration: (const InputDecoration(
                                 labelText:
                                     '\u984D\u5916\u6B63\u5411\u6A19\u7C64\uFF08\u4E2D\u6587\u6216\u82F1\u6587\uFF09',
                                 hintText:
                                     'custom prompt, \u6216\u7528\u9017\u865F\u5206\u9694',
-                              ),
+                              )).localized(),
                             ),
                             const SizedBox(height: 10),
                             Text(
@@ -18404,7 +18531,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                                         },
                                         icon: const Icon(Icons.clear),
                                       ),
-                              ),
+                              ).localized(),
                               onChanged: (_) => setDialogState(() {}),
                             ),
                             const SizedBox(height: 8),
@@ -18427,9 +18554,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                             return FilterChip(
                               selected: isSelected,
                               label: Text(
-                                tag.zh.isEmpty
-                                    ? tag.en
-                                    : '${tag.zh} · ${tag.en}',
+                                UiLanguageController.tagLabel(tag.zh, tag.en),
                               ),
                               tooltip: tag.en,
                               onSelected: (_) => setDialogState(() {
@@ -18703,7 +18828,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                         runSpacing: 6,
                         children: preview
                             .map((tag) => Chip(
-                                  label: Text('${tag.zh} · ${tag.en}'),
+                                  label: Text(
+                                    UiLanguageController.tagLabel(tag.zh, tag.en),
+                                  ),
                                   visualDensity: VisualDensity.compact,
                                 ))
                             .toList(),
@@ -18792,7 +18919,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                       runSpacing: 6,
                       children: preview
                           .map((tag) => Chip(
-                                label: Text('${tag.zh} · ${tag.en}'),
+                                label: Text(
+                                  UiLanguageController.tagLabel(tag.zh, tag.en),
+                                ),
                                 visualDensity: VisualDensity.compact,
                               ))
                           .toList(),
@@ -18911,7 +19040,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                           runSpacing: 6,
                           children: preview
                               .map((tag) => Chip(
-                                    label: Text('${tag.zh} · ${tag.en}'),
+                                    label: Text(
+                                      UiLanguageController.tagLabel(tag.zh, tag.en),
+                                    ),
                                     visualDensity: VisualDensity.compact,
                                   ))
                               .toList(),
@@ -18983,20 +19114,20 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               children: [
                 TextField(
                   controller: zh,
-                  decoration: const InputDecoration(labelText: '中文名稱'),
+                  decoration: (const InputDecoration(labelText: '中文名稱')).localized(),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: en,
-                  decoration: const InputDecoration(
+                  decoration: (const InputDecoration(
                     labelText: 'English tag',
                     hintText: '例如: blue jacket',
-                  ),
+                  )).localized(),
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: group,
-                  decoration: const InputDecoration(labelText: '分類與輸出順序'),
+                  decoration: (const InputDecoration(labelText: '分類與輸出順序')).localized(),
                   items: const [
                     '自訂角色',
                     '自訂特徵',
@@ -19476,10 +19607,123 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
   String _poseTagSupportHint(TagItem tag) {
     if (!_isPoseWorkflowTag(tag)) return '';
     return switch (tag.support) {
-      'official' => '\n類型：官方標籤',
-      'description' => '\n類型：自然敘述（模型是否精確採用會依模型版本而異）',
-      _ => '\n類型：一般標籤',
+      'official' => UiLanguageController.choose(
+          '\n類型：官方標籤', '\nType: official tag'),
+      'description' => UiLanguageController.choose(
+          '\n類型：自然敘述（模型是否精確採用會依模型版本而異）',
+          '\nType: natural-language description (model support may vary)'),
+      _ => UiLanguageController.choose('\n類型：一般標籤', '\nType: general tag'),
     };
+  }
+
+  String _tagDisplayLabel(TagItem tag) =>
+      UiLanguageController.tagLabel(tag.zh, tag.en);
+
+  String _compactEnglishLabel(
+    String source, {
+    String fallback = 'Preset',
+    int maxParts = 4,
+    int maxLength = 92,
+  }) {
+    final parts = source
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .take(maxParts)
+        .toList();
+    final compact = parts.join(', ');
+    if (compact.isEmpty) return fallback;
+    if (compact.length <= maxLength) return compact;
+    return '${compact.substring(0, maxLength - 1).trimRight()}…';
+  }
+
+  String _promptPackageEnglish(PromptPackageData package) {
+    final natural = package.naturalPrompt.trim();
+    if (natural.isNotEmpty) return natural;
+    final tags = package.tags.where((tag) => tag.trim().isNotEmpty).join(', ');
+    return tags.isEmpty ? 'Reusable prompt package' : tags;
+  }
+
+  String _promptPackageName(PromptPackageData package) => _isEnglishUi
+      ? _compactEnglishLabel(_promptPackageEnglish(package),
+          fallback: 'Prompt package')
+      : package.name;
+
+  String _promptPackageDescription(PromptPackageData package) => _isEnglishUi
+      ? 'Includes: ${_promptPackageEnglish(package)}'
+      : package.description;
+
+  String _hairStylePackageEnglish(HairStylePackageData package) {
+    final tags = package.tags.where((tag) => tag.trim().isNotEmpty).join(', ');
+    if (tags.isEmpty) return 'Hair style preset';
+    return tags;
+  }
+
+  String _hairStylePackageName(HairStylePackageData package) => _isEnglishUi
+      ? _compactEnglishLabel(_hairStylePackageEnglish(package),
+          fallback: 'Hair style preset')
+      : package.name;
+
+  String _hairStylePackageDescription(HairStylePackageData package) =>
+      _isEnglishUi
+          ? 'Includes: ${_hairStylePackageEnglish(package)}'
+          : package.description;
+
+  String _outfitReferenceEnglishPrompt(
+    OutfitReferencePresetData preset, {
+    OutfitReferenceVariantData? variant,
+  }) {
+    final variantEnglish = variant?.en.trim() ?? '';
+    if (variantEnglish.isNotEmpty) return variantEnglish;
+    final unified = preset.unifiedPhraseEn?.trim() ?? '';
+    if (unified.isNotEmpty) return unified;
+    final recommended = preset.recommendedPrompt?.trim() ?? '';
+    if (recommended.isNotEmpty) return recommended;
+    return 'Outfit reference preset';
+  }
+
+  String _outfitReferenceName(
+    OutfitReferencePresetData preset, {
+    OutfitReferenceVariantData? variant,
+  }) =>
+      _isEnglishUi
+          ? _compactEnglishLabel(
+              _outfitReferenceEnglishPrompt(preset, variant: variant),
+              fallback: 'Outfit preset',
+            )
+          : (variant?.name ?? preset.name);
+
+  String _outfitReferenceDescription(
+    OutfitReferencePresetData preset, {
+    OutfitReferenceVariantData? variant,
+  }) =>
+      _isEnglishUi
+          ? 'Includes: ${_outfitReferenceEnglishPrompt(preset, variant: variant)}'
+          : (variant?.description ?? preset.description);
+
+  String _outfitReferencePalette(
+    OutfitReferencePresetData preset, {
+    OutfitReferenceVariantData? variant,
+  }) =>
+      _isEnglishUi
+          ? 'Preset palette · ${_compactEnglishLabel(_outfitReferenceEnglishPrompt(preset, variant: variant), maxParts: 3)}'
+          : (variant?.palette ?? preset.palette);
+
+  String _applyToPersonLabel(int personIndex) => UiLanguageController.choose(
+        '套用到人物 ${personIndex + 1}',
+        'Apply to person ${personIndex + 1}',
+      );
+
+  String _personLabel(int personIndex) => UiLanguageController.choose(
+        '人物 ${personIndex + 1}',
+        'Person ${personIndex + 1}',
+      );
+
+  String _characterDisplayName(CatalogCharacter character) {
+    if (!_isEnglishUi) return character.characterZh;
+    final english = character.characterEn.trim();
+    return english.isEmpty ? character.characterZh : english;
   }
 
   Widget _tagChip(
@@ -19511,7 +19755,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
         isHairStyle ? _isOfficialHairStyleTag(tag) : false;
     final isClothing = _isClothingOrEquipmentTag(tag);
     return Tooltip(
-      message: '${tag.zh} · ${tag.en}${_poseTagSupportHint(tag)}',
+      message: '${_tagDisplayLabel(tag)}${_poseTagSupportHint(tag)}',
       child: ConstrainedBox(
         constraints: BoxConstraints(
           minWidth: _adaptiveChipLabelWidth(context) + (tag.adult ? 28 : 14),
@@ -19519,7 +19763,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
         child: FilterChip(
           selected: selected,
           label: Text(
-            '${tag.zh}  ·  ${tag.en}',
+            _tagDisplayLabel(tag),
             softWrap: true,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -19642,8 +19886,8 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
     );
     return Tooltip(
       message: colorOrder > 0
-          ? '${tag.zh} · ${tag.en}｜${colorOrderLabel ?? (tag.group == '髮色' ? '漸層色 $colorOrder' : '色 $colorOrder')}'
-          : '${tag.zh} · ${tag.en}',
+          ? '${_tagDisplayLabel(tag)}｜${colorOrderLabel ?? (tag.group == '髮色' ? UiLanguageController.choose('漸層色 $colorOrder', 'Gradient color $colorOrder') : UiLanguageController.choose('色 $colorOrder', 'Color $colorOrder'))}'
+          : _tagDisplayLabel(tag),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 58, minHeight: 44),
         child: FilterChip(
@@ -19906,7 +20150,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               final selected = !slot.outfitPaletteScopeSelectionInitialized ||
                   slot.outfitPaletteScopeIds.contains(base.id);
               return FilterChip(
-                label: Text(base.zh),
+                label: Text(_tagDisplayLabel(base)),
                 selected: selected,
                 onSelected: (_) =>
                     _toggleOutfitPaletteScope(personIndex, base.id),
@@ -20115,11 +20359,18 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('武器呈現方式', style: TextStyle(fontWeight: FontWeight.w800)),
+          Text(UiLanguageController.choose(
+            '武器呈現方式',
+            'Weapon presentation',
+          ), style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 3),
           Text(
+            UiLanguageController.choose(
               '手持與漂浮擇一；會直接與「${weapons.map((tag) => tag.zh).join('、')}」組成完整提示詞，不會套用到一般物件。',
-              style: TextStyle(fontSize: 12)),
+              'Choose held or floating. It is composed directly with ${weapons.map((tag) => tag.en).join(', ')} and will not apply to ordinary objects.',
+            ),
+            style: const TextStyle(fontSize: 12),
+          ),
           const SizedBox(height: 7),
           Wrap(
             spacing: 6,
@@ -20410,13 +20661,18 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                 child: Text('雙色漸層髮',
                     style: TextStyle(fontWeight: FontWeight.w800)),
               ),
-              Text('色 1：${primary.zh}  →  色 2：${secondary.zh}',
+              Text(_isEnglishUi
+                  ? 'Color 1: ${primary.en}  →  Color 2: ${secondary.en}'
+                  : '色 1：${primary.zh}  →  色 2：${secondary.zh}',
                   style: const TextStyle(fontSize: 12)),
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            '再點其他顏色會只替換色 2；若要更換色 1，請先點色 1 取消後再選擇。',
+          Text(
+            UiLanguageController.choose(
+              '再點其他顏色會只替換色 2；若要更換色 1，請先點色 1 取消後再選擇。',
+              'Choosing another color replaces only color 2. To change color 1, deselect color 1 first, then choose a new one.',
+            ),
             style: TextStyle(fontSize: 11),
           ),
           const SizedBox(height: 9),
@@ -20425,10 +20681,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
             runSpacing: 7,
             children: _hairGradientStyles
                 .map((style) => Tooltip(
-                      message: style.hint,
+                      message: _isEnglishUi ? style.hintEn : style.hint,
                       child: ChoiceChip(
                         selected: selectedStyle.id == style.id,
-                        label: Text(style.zh),
+                        label: Text(_isEnglishUi ? style.en : style.zh),
                         selectedColor: tone,
                         side: BorderSide(
                           color: selectedStyle.id == style.id
@@ -20820,7 +21076,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
     final apply = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(package.name),
+        title: Text(_hairStylePackageName(package)),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620, maxHeight: 560),
           child: SingleChildScrollView(
@@ -20828,25 +21084,27 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(package.description),
+                Text(_hairStylePackageDescription(package)),
                 const SizedBox(height: 14),
-                const Text('漸層色彩',
+                Text(UiLanguageController.choose('漸層色彩', 'Gradient colors'),
                     style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 SelectableText(
                   gradient.isEmpty
-                      ? '未設定漸層色彩'
-                      : '${gradient.map((tag) => '${tag.zh} · ${tag.en}').join('  →  ')}（${style.zh}）',
+                      ? UiLanguageController.choose(
+                          '未設定漸層色彩', 'No gradient colors set')
+                      : '${gradient.map(_tagDisplayLabel).join('  →  ')} (${_isEnglishUi ? style.en : style.zh})',
                 ),
                 const SizedBox(height: 14),
-                const Text('套件標籤',
+                Text(UiLanguageController.choose('套件標籤', 'Package tags'),
                     style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 if (tags.isEmpty)
-                  const Text('此套件沒有其他標籤。')
+                  Text(UiLanguageController.choose(
+                      '此套件沒有其他標籤。', 'This package has no other tags.'))
                 else
                   SelectableText(
-                    tags.map((tag) => '${tag.zh} · ${tag.en}').join('\n'),
+                    tags.map(_tagDisplayLabel).join('\n'),
                   ),
               ],
             ),
@@ -20860,7 +21118,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
             icon: const Icon(Icons.content_cut_outlined),
-            label: Text('套用到人物 ${personIndex + 1}'),
+            label: Text(_applyToPersonLabel(personIndex)),
           ),
         ],
       ),
@@ -20893,14 +21151,15 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
           Row(
             children: [
               Expanded(
-                child: Text(package.name,
+                child: Text(_hairStylePackageName(package),
                     style: const TextStyle(fontWeight: FontWeight.w800)),
               ),
               if (applied) Icon(Icons.check_circle, color: tone, size: 20),
             ],
           ),
           const SizedBox(height: 4),
-          Text(package.description, style: const TextStyle(fontSize: 12)),
+          Text(_hairStylePackageDescription(package),
+              style: const TextStyle(fontSize: 12)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -21252,9 +21511,19 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
         selectedSummaryTagsForGroup(group).length;
     String selectedSummaryForGroup(String group) {
       final selected = selectedSummaryTagsForGroup(group);
-      if (selected.isEmpty) return '尚未選擇';
-      final names = selected.take(2).map((tag) => tag.zh).join('、');
-      return selected.length > 2 ? '$names 等 ${selected.length} 項' : names;
+      if (selected.isEmpty) {
+        return UiLanguageController.choose('尚未選擇', 'Not selected');
+      }
+      final names = selected
+          .take(2)
+          .map(_tagDisplayLabel)
+          .join(_isEnglishUi ? ', ' : '、');
+      return selected.length > 2
+          ? UiLanguageController.choose(
+              '$names 等 ${selected.length} 項',
+              '$names +${selected.length - 2} more',
+            )
+          : names;
     }
 
     final maxOptionsHeight =
@@ -21390,7 +21659,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                           (tag) => Tooltip(
                             message: tag.en,
                             child: InputChip(
-                              label: Text(tag.zh),
+                              label: Text(_tagDisplayLabel(tag)),
                               visualDensity: VisualDensity.compact,
                               backgroundColor: _pickerLayerSurface(
                                 _pickerLayerTone(currentGroup),
@@ -21460,7 +21729,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                           setState(() => _clearPickerQuery(
                               searchScopeGroups, personIndex));
                         },
-                        icon: const Icon(Icons.clear))),
+                        icon: const Icon(Icons.clear))).localized(),
             onChanged: (value) => _schedulePickerSearch(pickerQueryKey, value),
           ),
           const SizedBox(height: 10),
@@ -21568,7 +21837,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
                 leading: CircleAvatar(child: Text('${index + 1}')),
-                title: Text('人物 ${index + 1}'),
+                title: Text(_personLabel(index)),
                 subtitle: const Text('此人物設定為不需細節，不加入此類標籤。'),
               ),
             );
@@ -21589,7 +21858,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                       CircleAvatar(child: Text('${index + 1}')),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text('人物 ${index + 1} · $title',
+                        child: Text(_isEnglishUi
+                            ? '${_personLabel(index)} · ${UiLanguageController.uiText(title)}'
+                            : '人物 ${index + 1} · $title',
                             style:
                                 const TextStyle(fontWeight: FontWeight.w700)),
                       ),
@@ -21764,7 +22035,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
     final apply = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(package.name),
+        title: Text(_promptPackageName(package)),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620, maxHeight: 560),
           child: SingleChildScrollView(
@@ -21772,25 +22043,33 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(package.description),
+                Text(_promptPackageDescription(package)),
                 const SizedBox(height: 14),
-                const Text('可選標籤',
+                Text(UiLanguageController.choose('可選標籤', 'Selectable tags'),
                     style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 if (tags.isEmpty)
-                  const Text('此套件以完整自然敘述保留動作關係。')
+                  Text(UiLanguageController.choose(
+                    '此套件以完整自然敘述保留動作關係。',
+                    'This package keeps its action relationship as a complete natural-language prompt.',
+                  ))
                 else
                   SelectableText(
-                    tags.map((tag) => '${tag.zh} · ${tag.en}').join('\n'),
+                    tags.map(_tagDisplayLabel).join('\n'),
                   ),
                 if (package.naturalPrompt.trim().isNotEmpty) ...[
+                  if (!_isEnglishUi) ...[
+                    const SizedBox(height: 14),
+                    const Text('中文動作內容',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    SelectableText(_promptPackageNaturalPromptZh(package)),
+                  ],
                   const SizedBox(height: 14),
-                  const Text('中文動作內容',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6),
-                  SelectableText(_promptPackageNaturalPromptZh(package)),
-                  const SizedBox(height: 14),
-                  const Text('英文提示詞（實際輸出）',
+                  Text(UiLanguageController.choose(
+                    '英文提示詞（實際輸出）',
+                    'English prompt (actual output)',
+                  ),
                       style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
                   SelectableText(package.naturalPrompt),
@@ -21807,7 +22086,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
             icon: const Icon(Icons.auto_awesome_outlined),
-            label: Text('套用到人物 ${personIndex + 1}'),
+            label: Text(_applyToPersonLabel(personIndex)),
           ),
         ],
       ),
@@ -21843,14 +22122,15 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
           Row(
             children: [
               Expanded(
-                child: Text(package.name,
+                child: Text(_promptPackageName(package),
                     style: const TextStyle(fontWeight: FontWeight.w800)),
               ),
               if (applied) Icon(Icons.check_circle, color: tone, size: 20),
             ],
           ),
           const SizedBox(height: 4),
-          Text(package.description, style: const TextStyle(fontSize: 12)),
+          Text(_promptPackageDescription(package),
+              style: const TextStyle(fontSize: 12)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -21983,7 +22263,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(package.name,
+                              Text(_promptPackageName(package),
                                   style: TextStyle(
                                     color: applied
                                         ? const Color(0xff171326)
@@ -21992,7 +22272,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                                   )),
                               const SizedBox(height: 2),
                               Text(
-                                package.description,
+                                _promptPackageDescription(package),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -22162,7 +22442,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(package.name,
+                              Text(_promptPackageName(package),
                                   style: TextStyle(
                                     color: applied
                                         ? const Color(0xff171326)
@@ -22171,7 +22451,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                                   )),
                               const SizedBox(height: 2),
                               Text(
-                                package.description,
+                                _promptPackageDescription(package),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -22903,18 +23183,28 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
     Iterable<OutfitReferencePresetData> available,
   ) {
     if (personIndex < 0 || personIndex >= _personSlots.length) {
-      return '通用套裝可直接使用。';
+      return UiLanguageController.choose(
+          '通用套裝可直接使用。', 'General presets are ready to use.');
     }
     final character = _characterForNew(_personSlots[personIndex]);
     if (character == null) {
-      return '先選擇角色後，才會顯示該角色的專屬服裝套件。';
+      return UiLanguageController.choose(
+        '先選擇角色後，才會顯示該角色的專屬服裝套件。',
+        'Choose a character first to view that character’s exclusive outfit presets.',
+      );
     }
     final personalCount =
         available.where((preset) => preset.isCharacterSpecific).length;
     if (personalCount == 0) {
-      return '「${character.characterZh}」目前沒有專屬套裝；通用套裝仍可使用。';
+      return UiLanguageController.choose(
+        '「${character.characterZh}」目前沒有專屬套裝；通用套裝仍可使用。',
+        '${_characterDisplayName(character)} has no exclusive presets yet; general presets remain available.',
+      );
     }
-    return '已顯示「${character.characterZh}」的 $personalCount 套專屬服裝；通用套裝仍可使用。';
+    return UiLanguageController.choose(
+      '已顯示「${character.characterZh}」的 $personalCount 套專屬服裝；通用套裝仍可使用。',
+      '$personalCount exclusive presets for ${_characterDisplayName(character)} are shown; general presets remain available.',
+    );
   }
 
   Widget _canonicalOutfitAdjustmentPanel(int personIndex) {
@@ -22937,10 +23227,16 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('原作服裝細節調整', style: TextStyle(fontWeight: FontWeight.w800)),
+          Text(UiLanguageController.choose(
+            '原作服裝細節調整',
+            'Canonical outfit adjustments',
+          ), style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
-          const Text(
-            '選取後可用下方上衣／下衣的色彩、剪裁、材質與裝飾調整原作服裝；兩部分會各自以括號輸出。',
+          Text(
+            UiLanguageController.choose(
+              '選取後可用下方上衣／下衣的色彩、剪裁、材質與裝飾調整原作服裝；兩部分會各自以括號輸出。',
+              'Select a part to adjust its canonical outfit with color, cut, material, and details. Top and bottom are emitted in separate parentheses.',
+            ),
             style: TextStyle(fontSize: 12),
           ),
           const SizedBox(height: 8),
@@ -22950,7 +23246,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
             children: [top, bottom]
                 .map(
                   (tag) => FilterChip(
-                    label: Text(tag.zh),
+                    label: Text(_tagDisplayLabel(tag)),
                     selected: selected.contains(tag.id),
                     selectedColor: tone,
                     onSelected: (_) => _toggle(tag, personIndex: personIndex),
@@ -22989,7 +23285,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
         key: PageStorageKey<String>('outfit-reference-$personIndex'),
         leading: Icon(Icons.auto_awesome, color: tone),
         title: Text(
-          '女子服裝靈感套裝（${availablePresets.length} 套）',
+          UiLanguageController.choose(
+            '女子服裝靈感套裝（${availablePresets.length} 套）',
+            'Women’s outfit inspiration (${availablePresets.length} presets)',
+          ),
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
         subtitle: Text(
@@ -23046,10 +23345,6 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                   final selectedVariant = outfitSelected
                       ? _selectedOutfitReferenceVariant(preset, personIndex)
                       : null;
-                  final displayedPalette =
-                      selectedVariant?.palette ?? preset.palette;
-                  final displayedDescription =
-                      selectedVariant?.description ?? preset.description;
                   final equipment = _outfitReferenceEquipmentTags(preset);
                   final equipmentSelected =
                       _outfitReferenceEquipmentSelected(preset, personIndex);
@@ -23086,7 +23381,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  preset.name,
+                                  _outfitReferenceName(
+                                    preset,
+                                    variant: selectedVariant,
+                                  ),
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w800,
                                       fontSize: 15),
@@ -23098,18 +23396,27 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            displayedPalette,
+                            _outfitReferencePalette(
+                              preset,
+                              variant: selectedVariant,
+                            ),
                             style: TextStyle(
                               color: tone,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                           const SizedBox(height: 6),
-                          Text(displayedDescription),
+                          Text(_outfitReferenceDescription(
+                            preset,
+                            variant: selectedVariant,
+                          )),
                           if (preset.variants.isNotEmpty) ...[
                             const SizedBox(height: 10),
-                            const Text(
-                              '配色版本',
+                            Text(
+                              UiLanguageController.choose(
+                                '配色版本',
+                                'Color variants',
+                              ),
                               style: TextStyle(fontWeight: FontWeight.w800),
                             ),
                             const SizedBox(height: 6),
@@ -23118,7 +23425,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                               runSpacing: 8,
                               children: [
                                 ChoiceChip(
-                                  label: Text('原始米白款・${preset.palette}'),
+                                  label: Text(UiLanguageController.choose(
+                                    '原始米白款・${preset.palette}',
+                                    'Original preset',
+                                  )),
                                   selected:
                                       outfitSelected && selectedVariant == null,
                                   onSelected: (selected) async {
@@ -23138,8 +23448,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                                 ),
                                 for (final variant in preset.variants)
                                   ChoiceChip(
-                                    label: Text(
-                                        '${variant.name}・${variant.palette}'),
+                                    label: Text(_outfitReferenceName(
+                                      preset,
+                                      variant: variant,
+                                    )),
                                     selected: selectedVariant?.id == variant.id,
                                     onSelected: (selected) async {
                                       if (!selected) return;
@@ -23161,8 +23473,11 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                           ],
                           if (contextTags.isNotEmpty) ...[
                             const SizedBox(height: 10),
-                            const Text(
-                              '職業設定與頭部特徵',
+                            Text(
+                              UiLanguageController.choose(
+                                '職業設定與頭部特徵',
+                                'Class context & head traits',
+                              ),
                               style: TextStyle(fontWeight: FontWeight.w800),
                             ),
                             const SizedBox(height: 6),
@@ -23174,7 +23489,12 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                                   FilterChip(
                                     avatar: const Icon(Icons.auto_awesome,
                                         size: 16),
-                                    label: Text(phrase.zh),
+                                    label: Text(
+                                      UiLanguageController.tagLabel(
+                                        phrase.zh,
+                                        phrase.en,
+                                      ),
+                                    ),
                                     selected:
                                         _outfitReferenceContextPhraseSelected(
                                       preset,
@@ -23196,13 +23516,19 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                           ],
                           if (outfitSelected && sectionControls.isNotEmpty) ...[
                             const SizedBox(height: 10),
-                            const Text(
-                              '套裝部位（可單獨移除）',
+                            Text(
+                              UiLanguageController.choose(
+                                '套裝部位（可單獨移除）',
+                                'Outfit parts (removable individually)',
+                              ),
                               style: TextStyle(fontWeight: FontWeight.w800),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              '取消勾選只會從此套裝的輸出移除該部位；職業設定、其他部位與武器不會受影響。',
+                            Text(
+                              UiLanguageController.choose(
+                                '取消勾選只會從此套裝的輸出移除該部位；職業設定、其他部位與武器不會受影響。',
+                                'Turning off a part removes only that part from this preset. Class context, other parts, and weapons remain unchanged.',
+                              ),
                               style: TextStyle(fontSize: 12),
                             ),
                             const SizedBox(height: 6),
@@ -23218,11 +23544,14 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                                           : Icons.check_circle_outline,
                                       size: 16,
                                     ),
-                                    label: Text(
+                                    label: Text(UiLanguageController.choose(
                                       hiddenSections.contains(section.id)
                                           ? '${section.zh}・已移除'
                                           : '${section.zh}・使用中',
-                                    ),
+                                      hiddenSections.contains(section.id)
+                                          ? '${section.en} · removed'
+                                          : '${section.en} · active',
+                                    )),
                                     selected:
                                         !hiddenSections.contains(section.id),
                                     onSelected: (selected) =>
@@ -23241,15 +23570,21 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                                       personIndex,
                                     ),
                                     icon: const Icon(Icons.restore, size: 17),
-                                    label: const Text('恢復全部部位'),
+                                    label: Text(UiLanguageController.choose(
+                                      '恢復全部部位',
+                                      'Restore all parts',
+                                    )),
                                   ),
                               ],
                             ),
                           ],
                           if (equipment.isNotEmpty) ...[
                             const SizedBox(height: 10),
-                            const Text(
-                              '專屬武器／裝備',
+                            Text(
+                              UiLanguageController.choose(
+                                '專屬武器／裝備',
+                                'Exclusive weapon / equipment',
+                              ),
                               style: TextStyle(fontWeight: FontWeight.w800),
                             ),
                             const SizedBox(height: 6),
@@ -23258,7 +23593,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                               runSpacing: 8,
                               children: [
                                 ChoiceChip(
-                                  label: const Text('不含武器'),
+                                  label: Text(UiLanguageController.choose(
+                                    '不含武器',
+                                    'No weapon',
+                                  )),
                                   selected: !equipmentSelected,
                                   onSelected: outfitSelected
                                       ? (selected) {
@@ -23272,9 +23610,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                                 ChoiceChip(
                                   avatar:
                                       const Icon(Icons.auto_fix_high, size: 17),
-                                  label: Text(
+                                  label: Text(UiLanguageController.choose(
                                     '含${equipment.map((tag) => tag.zh).join('、')}',
-                                  ),
+                                    'Include ${equipment.map((tag) => tag.en).join(', ')}',
+                                  )),
                                   selected: equipmentSelected,
                                   onSelected: outfitSelected
                                       ? (selected) {
@@ -23473,7 +23812,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
                 leading: CircleAvatar(child: Text('${index + 1}')),
-                title: Text('人物 ${index + 1}'),
+                title: Text(_personLabel(index)),
                 subtitle: const Text('此人物設定為不需細節，不加入服裝標籤。'),
               ),
             );
@@ -23494,7 +23833,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                       CircleAvatar(child: Text('${index + 1}')),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text('人物 ${index + 1} · $title',
+                        child: Text(_isEnglishUi
+                            ? '${_personLabel(index)} · ${UiLanguageController.uiText(title)}'
+                            : '人物 ${index + 1} · $title',
                             style:
                                 const TextStyle(fontWeight: FontWeight.w700)),
                       ),
@@ -24188,7 +24529,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                     stepIndex == 1 && _isMandatoryCharacterIdentityOutput(tag);
                 final personPrefix = tag.personIndex == null
                     ? ''
-                    : '人物 ${tag.personIndex! + 1} · ';
+                    : UiLanguageController.choose(
+                        '人物 ${tag.personIndex! + 1} · ',
+                        'Person ${tag.personIndex! + 1} · ',
+                      );
                 return Tooltip(
                   message: locked
                       ? '${_moderationSafePromptTag(tag.en)}（角色名稱必定保留）'
@@ -24197,7 +24541,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                     avatar: locked
                         ? const Icon(Icons.lock_outline, size: 15)
                         : null,
-                    label: Text('$personPrefix${tag.zh}'),
+                    label: Text(
+                      '$personPrefix${UiLanguageController.tagLabel(tag.zh, tag.en)}',
+                    ),
                     deleteIcon: const Icon(Icons.close, size: 16),
                     onDeleted:
                         locked ? null : () => _removeGeneratedOutputTag(tag),
@@ -25211,8 +25557,8 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
         const SizedBox(height: 14),
         DropdownButtonFormField<int>(
           initialValue: _personSlots.length,
-          decoration: const InputDecoration(
-              labelText: '人物數量（必填）', prefixIcon: Icon(Icons.groups_outlined)),
+          decoration: (const InputDecoration(
+              labelText: '人物數量（必填）', prefixIcon: Icon(Icons.groups_outlined))).localized(),
           items: List.generate(10, (index) => index + 1)
               .map((value) =>
                   DropdownMenuItem(value: value, child: Text('$value 人')))
@@ -25286,7 +25632,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Text('人物 ${index + 1}',
+                      Text(_personLabel(index),
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                       const Spacer(),
                       IconButton(
@@ -25310,8 +25656,8 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                             width: 150,
                             child: DropdownButtonFormField<String>(
                                 initialValue: slot.gender,
-                                decoration:
-                                    const InputDecoration(labelText: '性別/類型'),
+                                decoration: (const InputDecoration(
+                                    labelText: '性別/類型')).localized(),
                                 items: const ['女性', '男性', '其他/異種']
                                     .map((value) => DropdownMenuItem(
                                         value: value, child: Text(value)))
@@ -25466,9 +25812,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                               child: TextField(
                                   controller: _personSearchController(
                                       index, 'anime', slot.animeQuery),
-                                  decoration: const InputDecoration(
+                                  decoration: (const InputDecoration(
                                       labelText: '查詢動漫名稱',
-                                      prefixIcon: Icon(Icons.search)),
+                                      prefixIcon: Icon(Icons.search))).localized(),
                                   onChanged: (value) =>
                                       setState(() => slot.animeQuery = value)),
                             ),
@@ -25503,7 +25849,12 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                           _characterPickerButton(
                             icon: Icons.person_search_outlined,
                             title: '選擇角色',
-                            selection: selectedCharacter?.characterZh ?? '尚未選擇',
+                            selection: _isEnglishUi
+                                ? (selectedCharacter?.characterEn.trim().isNotEmpty == true
+                                    ? selectedCharacter!.characterEn
+                                    : (selectedCharacter?.characterZh ??
+                                        'Not selected'))
+                                : (selectedCharacter?.characterZh ?? '尚未選擇'),
                             expanded:
                                 _openCharacterPickers[index] == 'character',
                             onPressed: () => setState(() {
@@ -25519,9 +25870,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                             TextField(
                                 controller: _personSearchController(
                                     index, 'character', slot.query),
-                                decoration: const InputDecoration(
+                                decoration: (const InputDecoration(
                                     labelText: '查詢角色名稱',
-                                    prefixIcon: Icon(Icons.person_search)),
+                                    prefixIcon: Icon(Icons.person_search))).localized(),
                                 onChanged: (value) =>
                                     setState(() => slot.query = value)),
                             _remoteCharacterPanel(index),
@@ -26167,15 +26518,22 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
         personIndex.clamp(0, max(0, _personSlots.length - 1)).toInt();
     final slot = _personSlots[safeIndex];
     final character = _characterForNew(slot);
-    final name = character?.characterZh.trim().isNotEmpty == true
-        ? character!.characterZh.trim()
-        : slot.originalCharacterZh.trim();
+    final name = _isEnglishUi
+        ? (character?.characterEn.trim().isNotEmpty == true
+            ? character!.characterEn.trim()
+            : slot.originalCharacterZh.trim())
+        : (character?.characterZh.trim().isNotEmpty == true
+            ? character!.characterZh.trim()
+            : slot.originalCharacterZh.trim());
     final detail = name.isNotEmpty
         ? name
         : slot.detailed
-            ? '未設定角色'
-            : '不需細節';
-    return '人物 ${safeIndex + 1}・$detail';
+            ? UiLanguageController.choose('未設定角色', 'No character set')
+            : UiLanguageController.choose('不需細節', 'No details');
+    return UiLanguageController.choose(
+      '人物 ${safeIndex + 1}・$detail',
+      'Person ${safeIndex + 1} · $detail',
+    );
   }
 
   Widget _globalSearchTagChip(TagItem tag, int targetPersonIndex) {
@@ -26188,7 +26546,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
     final tone = _pickerLayerTone(tag.group);
     return Tooltip(
       message:
-          '${_wizardGroupLabel(tag.group)}｜${tag.zh} · ${tag.en}\n套用到：$targetLabel${_poseTagSupportHint(tag)}',
+          '${UiLanguageController.uiText(_wizardGroupLabel(tag.group))}｜${_tagDisplayLabel(tag)}\n${UiLanguageController.choose('套用到：', 'Apply to: ')}${UiLanguageController.uiText(targetLabel)}${_poseTagSupportHint(tag)}',
       child: FilterChip(
         selected: selected,
         avatar: tag.adult
@@ -26201,7 +26559,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               )
             : null,
         label: Text(
-          '${_wizardGroupLabel(tag.group)}｜${tag.zh}  ·  ${tag.en}',
+          '${UiLanguageController.uiText(_wizardGroupLabel(tag.group))}｜${_tagDisplayLabel(tag)}',
           softWrap: true,
           maxLines: 3,
           overflow: TextOverflow.ellipsis,
@@ -26289,7 +26647,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                         icon: const Icon(Icons.clear),
                       ),
                 filled: true,
-              ),
+              ).localized(),
               onChanged: _scheduleGlobalSearch,
             ),
             const SizedBox(height: 7),
@@ -26544,7 +26902,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                       ),
                 hintText: '搜尋中文或英文標籤…',
                 filled: true,
-              ),
+              ).localized(),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -26771,7 +27129,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
           : _moderationSafePromptTag(tag.en),
       child: InputChip(
         avatar: locked ? const Icon(Icons.lock_outline, size: 15) : null,
-        label: Text(tag.zh),
+        label: Text(UiLanguageController.tagLabel(tag.zh, tag.en)),
         deleteIcon: const Icon(Icons.close, size: 16),
         onDeleted: locked ? null : () => _removeGeneratedOutputTag(tag),
         backgroundColor: _buttonSurface,
@@ -26900,7 +27258,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       Text(
-                        '已選 $selectedCount 個資料庫標籤 · 英文每個標籤以句點結尾',
+                        UiLanguageController.choose(
+                          '已選 $selectedCount 個資料庫標籤 · 英文每個標籤以句點結尾',
+                          '$selectedCount database tags selected · English tags are separated with periods',
+                        ),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -26933,8 +27294,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               ),
             ),
             const SizedBox(height: 12),
-            _chineseOutputField(),
-            const SizedBox(height: 12),
+            if (!_isEnglishUi) ...[
+              _chineseOutputField(),
+              const SizedBox(height: 12),
+            ],
             _outputField(
               'English prompt · 可直接貼上',
               _positiveText,
@@ -27179,6 +27542,11 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: UiLanguageController.choose('切換介面語言', 'Change interface language'),
+            onPressed: _showUiLanguagePicker,
+            icon: const Icon(Icons.language),
+          ),
           IconButton(
             tooltip: '版本歷程',
             onPressed: _showVersionHistory,
