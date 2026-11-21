@@ -1,0 +1,19 @@
+const appVersion = '1.0.1';
+const appBuildNumber = 2;
+const appVersionLabel = '1.0.1+2';
+const appVersionHistory = <Map<String, String>>[
+  {
+    'version': '1.0.1',
+    'build': '2',
+    'label': '1.0.1+2',
+    'date': '2026-11-21',
+    'notes': '公開版改用獨立安全資料目錄，全面過濾舊存檔、搜尋、反推與自由輸入中的限制內容。',
+  },
+  {
+    'version': '1.0.0',
+    'build': '1',
+    'label': '1.0.0+1',
+    'date': '2026-11-20',
+    'notes': '建立公開全齡版：保留角色、服裝、場景、姿勢與畫面工具，移除成人分類與相關輸出。',
+  },
+];

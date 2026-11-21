@@ -1,0 +1,829 @@
+/// Reusable all-ages prompt packages.
+///
+/// A package may combine editable picker tags with a natural-language prompt.
+/// Natural prompts are preserved verbatim, so longer action descriptions do
+/// not need to be split into individual catalog tags first.
+class PromptPackageData {
+  const PromptPackageData({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.category,
+    this.tags = const <String>[],
+    this.naturalPrompt = '',
+    this.naturalPromptZh = '',
+    this.legacyNaturalPrompts = const <String>[],
+  });
+
+  final String id;
+  final String name;
+  final String description;
+  final String category;
+  final List<String> tags;
+  final String naturalPrompt;
+  final String naturalPromptZh;
+  final List<String> legacyNaturalPrompts;
+}
+
+class _PackagePart {
+  const _PackagePart(this.id, this.name, this.tags);
+
+  final String id;
+  final String name;
+  final List<String> tags;
+}
+
+/// 10 base poses × 10 gestures = 100 editable general-pose packages.
+final generalPosePackages = List<PromptPackageData>.unmodifiable([
+  for (final base in _poseBases)
+    for (final gesture in _poseGestures)
+      PromptPackageData(
+        id: 'pose_${base.id}_${gesture.id}',
+        name: '${base.name}・${gesture.name}',
+        description: '${base.name}搭配${gesture.name}的單人姿勢。',
+        category: base.name,
+        tags: [...base.tags, ...gesture.tags],
+      ),
+]);
+
+/// Reusable visual-motion kits.  They deliberately describe camera-visible
+/// movement only, so they can be combined with a regular action or an
+/// ordinary pose package without changing the underlying pose selection.
+const dynamicMotionPackages = <PromptPackageData>[
+  PromptPackageData(
+    id: 'motion_clear_action_lines',
+    name: '清晰動作線',
+    description: '以動作線與速度線強化正在進行的肢體動作。',
+    category: '動作線',
+    tags: <String>['motion lines', 'speed lines'],
+  ),
+  PromptPackageData(
+    id: 'motion_fast_blur',
+    name: '高速動態模糊',
+    description: '保留主體輪廓，同時以速度線與輕微模糊表現快速動作。',
+    category: '高速感',
+    tags: <String>['motion lines', 'speed lines', 'motion blur'],
+  ),
+  PromptPackageData(
+    id: 'motion_strong_tremble',
+    name: '強烈震動感',
+    description: '以顫抖、搖晃與動態模糊表現強烈的連續動作。',
+    category: '震動感',
+    tags: <String>['motion lines', 'motion blur', 'shaking', 'trembling'],
+  ),
+  PromptPackageData(
+    id: 'motion_rhythm_sway',
+    name: '節奏擺動',
+    description: '加入重複節奏與身體擺動，適合舞蹈、運動或其他連續動作。',
+    category: '節奏感',
+    tags: <String>['motion lines', 'swaying hips', 'hip sway'],
+  ),
+  PromptPackageData(
+    id: 'motion_intense_scene',
+    name: '高強度動態',
+    description: '動作線、速度線、模糊與震動一次套用；可再搭配一般姿勢。',
+    category: '高強度',
+    tags: <String>[
+      'motion lines',
+      'speed lines',
+      'motion blur',
+      'shaking',
+      'trembling',
+    ],
+  ),
+];
+
+/// Pillow interactions are all-ages personal-pose packages. They use a
+/// complete natural phrase so the hand count, the pillow, and face or mouth
+/// coverage stay together in the generated prompt.
+const pillowPosePackages = <PromptPackageData>[
+  PromptPackageData(
+    id: 'pillow_one_hand_hold',
+    name: '單手抱枕頭',
+    description: '單手拿著或抱住枕頭，另一隻手可保留做其他動作。',
+    category: '單手互動',
+    naturalPrompt: 'one hand holding a pillow, relaxed pose',
+    naturalPromptZh: '單手拿著枕頭，保持自然放鬆的姿勢。',
+  ),
+  PromptPackageData(
+    id: 'pillow_both_hands_hold',
+    name: '雙手抱枕頭',
+    description: '雙手將枕頭抱在胸前或身前。',
+    category: '雙手互動',
+    naturalPrompt:
+        'holding a pillow with both hands, hugging pillow close to chest',
+    naturalPromptZh: '雙手抱著枕頭並靠近胸前。',
+  ),
+  PromptPackageData(
+    id: 'pillow_one_hand_mouth_cover',
+    name: '單手抱枕遮嘴',
+    description: '單手拿著抱枕擋住嘴巴，保留眼睛與大部分臉部表情。',
+    category: '遮嘴互動',
+    naturalPrompt:
+        'one hand holding a pillow in front of mouth, pillow covering mouth, mouth hidden behind pillow',
+    naturalPromptZh: '單手拿著抱枕遮住嘴巴，眼睛與大部分臉部仍可見。',
+  ),
+  PromptPackageData(
+    id: 'pillow_both_hands_mouth_cover',
+    name: '雙手抱枕遮嘴',
+    description: '雙手抱住抱枕遮住嘴巴，保留眼睛與大部分臉部表情。',
+    category: '遮嘴互動',
+    naturalPrompt:
+        'holding a pillow with both hands in front of mouth, pillow covering mouth, mouth hidden behind pillow',
+    naturalPromptZh: '雙手抱著抱枕遮住嘴巴，眼睛與大部分臉部仍可見。',
+  ),
+  PromptPackageData(
+    id: 'pillow_one_hand_face_cover',
+    name: '單手抱枕遮臉',
+    description: '以單手扶住枕頭，局部遮住臉部。',
+    category: '遮臉互動',
+    naturalPrompt:
+        'one hand holding a pillow, pillow partially covering face, face partly hidden behind pillow',
+    naturalPromptZh: '單手扶住枕頭，枕頭局部遮住臉部。',
+  ),
+  PromptPackageData(
+    id: 'pillow_both_hands_face_cover',
+    name: '雙手抱枕遮臉',
+    description: '雙手抱住枕頭並遮住大部分臉部。',
+    category: '遮臉互動',
+    naturalPrompt:
+        'holding a pillow with both hands, pillow covering face, face hidden behind pillow',
+    naturalPromptZh: '雙手抱住枕頭，枕頭遮住大部分臉部。',
+  ),
+];
+
+/// Companion-animal interaction kits. They are natural
+/// phrases because the animal, contact point, and supporting hand need to
+/// remain together instead of being incorrectly split into generic prop tags.
+const petCompanionPosePackages = <PromptPackageData>[
+  PromptPackageData(
+    id: 'pet_cat_in_arms',
+    name: '抱著貓咪',
+    description: '將貓咪安穩抱在懷中，呈現日常陪伴感。',
+    category: '貓咪互動',
+    naturalPrompt:
+        'holding a cat in arms, cat held close, gentle pet interaction',
+    naturalPromptZh: '抱著貓咪，將牠安穩抱在懷中，呈現溫柔的寵物互動。',
+  ),
+  PromptPackageData(
+    id: 'pet_cat_on_lap',
+    name: '貓咪趴在腿上',
+    description: '坐著時讓貓咪蜷伏或趴在腿上，並輕撫牠。',
+    category: '貓咪互動',
+    naturalPrompt:
+        'cat lying on lap, one hand gently petting cat, relaxed seated pose',
+    naturalPromptZh: '貓咪趴在腿上，單手輕撫貓咪，採自然坐姿。',
+  ),
+  PromptPackageData(
+    id: 'pet_cat_on_chest',
+    name: '貓咪趴在胸前',
+    description: '貓咪依偎在上半身／胸前，手部輕扶牠。',
+    category: '貓咪互動',
+    naturalPrompt:
+        'cat resting on chest, holding cat close, gentle pet interaction',
+    naturalPromptZh: '貓咪趴在胸前，角色輕扶並靠近貓咪。',
+  ),
+  PromptPackageData(
+    id: 'pet_cat_on_stomach',
+    name: '貓咪趴在腹部',
+    description: '角色仰躺時，貓咪舒服地趴在腹部。',
+    category: '貓咪互動',
+    naturalPrompt:
+        'lying on back, cat resting on stomach, one hand gently petting cat',
+    naturalPromptZh: '角色仰躺，貓咪趴在腹部，單手輕撫貓咪。',
+  ),
+  PromptPackageData(
+    id: 'pet_cat_on_shoulder',
+    name: '貓咪停在肩上',
+    description: '貓咪穩穩停在肩膀上，角色以手支撐或側望牠。',
+    category: '貓咪互動',
+    naturalPrompt:
+        'cat perched on shoulder, one hand supporting cat, looking at cat',
+    naturalPromptZh: '貓咪停在肩上，角色以單手支撐並看向貓咪。',
+  ),
+  PromptPackageData(
+    id: 'pet_cat_rubbing_legs',
+    name: '貓咪蹭著腿',
+    description: '站立或坐著時，貓咪親近地磨蹭角色腿邊。',
+    category: '貓咪互動',
+    naturalPrompt:
+        'cat rubbing against legs, one hand gently petting cat, affectionate pet interaction',
+    naturalPromptZh: '貓咪磨蹭角色腿邊，角色單手輕撫貓咪。',
+  ),
+  PromptPackageData(
+    id: 'pet_dog_in_arms',
+    name: '抱著小狗',
+    description: '將小狗抱在懷中，適合日常或溫馨場景。',
+    category: '狗狗互動',
+    naturalPrompt:
+        'holding a small dog in arms, dog held close, gentle pet interaction',
+    naturalPromptZh: '抱著小狗，將牠安穩抱在懷中，呈現溫柔的寵物互動。',
+  ),
+  PromptPackageData(
+    id: 'pet_dog_on_lap',
+    name: '小狗趴在腿上',
+    description: '坐著時讓小狗趴在腿上，並以單手撫摸牠。',
+    category: '狗狗互動',
+    naturalPrompt:
+        'small dog lying on lap, one hand gently petting dog, relaxed seated pose',
+    naturalPromptZh: '小狗趴在腿上，角色以單手輕撫小狗，採自然坐姿。',
+  ),
+  PromptPackageData(
+    id: 'pet_rabbit_in_arms',
+    name: '抱著兔子',
+    description: '雙手小心抱著兔子，適合安靜陪伴畫面。',
+    category: '小型寵物',
+    naturalPrompt:
+        'holding a rabbit in arms with both hands, gentle pet interaction',
+    naturalPromptZh: '雙手抱著兔子，呈現安靜溫柔的寵物互動。',
+  ),
+  PromptPackageData(
+    id: 'pet_rabbit_on_lap',
+    name: '兔子坐在腿上',
+    description: '坐著時讓兔子待在腿上，手部輕撫。',
+    category: '小型寵物',
+    naturalPrompt:
+        'rabbit sitting on lap, one hand gently petting rabbit, relaxed seated pose',
+    naturalPromptZh: '兔子坐在腿上，角色單手輕撫兔子，採自然坐姿。',
+  ),
+  PromptPackageData(
+    id: 'pet_bird_on_shoulder',
+    name: '小鳥停在肩上',
+    description: '小鳥停在肩膀上，角色側望或注視牠。',
+    category: '小型寵物',
+    naturalPrompt:
+        'small bird perched on shoulder, looking at bird, calm companion interaction',
+    naturalPromptZh: '小鳥停在肩上，角色看向小鳥，呈現安靜陪伴互動。',
+  ),
+  PromptPackageData(
+    id: 'pet_hamster_in_hands',
+    name: '雙手捧著倉鼠',
+    description: '以雙手掌心輕捧倉鼠，適合近距離溫馨構圖。',
+    category: '小型寵物',
+    naturalPrompt:
+        'hamster resting in cupped hands, gentle pet interaction, close careful hold',
+    naturalPromptZh: '倉鼠待在雙手掌心中，呈現近距離、細心的寵物互動。',
+  ),
+  PromptPackageData(
+    id: 'pet_beside_feet',
+    name: '寵物趴在腳邊',
+    description: '小型寵物安靜趴在角色腳邊或身旁。',
+    category: '陪伴構圖',
+    naturalPrompt:
+        "small pet lying beside person's feet, calm companion animal, gentle everyday scene",
+    naturalPromptZh: '小型寵物安靜趴在角色腳邊，呈現日常陪伴場景。',
+  ),
+];
+
+/// Fifteen feline-inspired single-person pose kits. They are intentionally
+/// built from the normal editable pose tags, so a cat tail, ears, paws, or
+/// anthro identity can be added separately only when wanted.
+const felineSoloPosePackages = <PromptPackageData>[
+  PromptPackageData(
+    id: 'feline_play_bow_ball',
+    name: '玩球預備動作',
+    description: '壓低身體、盯著小球，準備撲上去。',
+    category: '玩耍與探索',
+    tags: const <String>[],
+    naturalPrompt:
+        'play bow pose, hips raised, upper body lowered, hands hovering above a ball, swaying left and right, staring at the ball, playful focus, ready-to-pounce energy',
+  ),
+  PromptPackageData(
+    id: 'feline_kneeling_chin_stroke',
+    name: '跪姿抬頭被摸下巴',
+    description: '直身跪姿、抬頭，接受輕撫下巴。',
+    category: '休息與撒嬌',
+    tags: const <String>[],
+    naturalPrompt:
+        'kneeling pose, upper body upright, head tilted up, chin being gently stroked, pleased expression, relaxed posture, content feline reaction',
+  ),
+  PromptPackageData(
+    id: 'feline_lying_belly_rub',
+    name: '仰躺露肚撒嬌',
+    description: '仰躺放鬆露出腹部，呈現信任與撒嬌姿態。',
+    category: '休息與撒嬌',
+    tags: const <String>[],
+    naturalPrompt:
+        'lying on back, stomach exposed, trusting pose, relaxed limbs, soft happy expression, feline-like relaxed pose',
+    naturalPromptZh: '單人姿勢：仰躺露出腹部，保留放鬆四肢、信任姿態與柔和愉悅表情。',
+  ),
+  PromptPackageData(
+    id: 'feline_crouched_grooming',
+    name: '蹲坐整理自己',
+    description: '低身蹲坐、做洗臉般的整理動作。',
+    category: '玩耍與探索',
+    tags: const <String>[],
+    naturalPrompt:
+        'crouched sitting pose, grooming gesture, one hand near cheek, self-cleaning motion, calm expression, neat feline behavior',
+  ),
+  PromptPackageData(
+    id: 'feline_low_stalking',
+    name: '低伏偷偷接近',
+    description: '身體前壓、低伏潛行的接近姿態。',
+    category: '玩耍與探索',
+    tags: const <String>[],
+    naturalPrompt:
+        'low stalking pose, upper body leaning forward, knees bent, fingertips touching the ground, focused gaze, sneaking movement, hunting-cat posture',
+  ),
+  PromptPackageData(
+    id: 'feline_perched_observing',
+    name: '高處蹲坐俯視',
+    description: '佔據高處、向下安靜觀察。',
+    category: '玩耍與探索',
+    tags: const <String>[],
+    naturalPrompt:
+        'perched sitting pose, upright posture, looking downward, calm observant expression, elegant feline composure, high-ground cat posture',
+  ),
+  PromptPackageData(
+    id: 'feline_side_lying_tail_swish',
+    name: '側躺甩尾看人',
+    description: '側躺托頭，尾巴輕輕甩動。',
+    category: '休息與撒嬌',
+    tags: const <String>[],
+    naturalPrompt:
+        'lying on side, one arm supporting head, tail swishing gently, relaxed gaze, lazy feline mood, calm playful posture',
+  ),
+  PromptPackageData(
+    id: 'feline_stretching_yawn',
+    name: '伸長身體打哈欠',
+    description: '全身伸展並打哈欠的剛睡醒感。',
+    category: '休息與撒嬌',
+    tags: const <String>[],
+    naturalPrompt:
+        'full-body stretch, arms extended, back elongated, yawning, sleepy eyes, relaxed feline motion, just-woke-up mood',
+  ),
+  PromptPackageData(
+    id: 'feline_pawing_toy',
+    name: '用手拍玩具',
+    description: '前傾伸手、像貓掌般撥弄玩具。',
+    category: '玩耍與探索',
+    tags: const <String>[],
+    naturalPrompt:
+        'leaning forward, pawing gesture, one hand reaching to tap a toy, curious expression, playful interaction, cat-like batting motion',
+  ),
+  PromptPackageData(
+    id: 'feline_alert_turn_back',
+    name: '驚覺豎耳回頭',
+    description: '聽見動靜後警覺地回頭。',
+    category: '玩耍與探索',
+    tags: const <String>[],
+    naturalPrompt:
+        'sudden turn, looking back, ears perked up, alert expression, slightly tense posture, startled feline reaction',
+  ),
+  PromptPackageData(
+    id: 'feline_curled_up_resting',
+    name: '縮成一團打盹',
+    description: '蜷縮成一團、安靜休息。',
+    category: '休息與撒嬌',
+    tags: const <String>[],
+    naturalPrompt:
+        'compact curled-up pose, knees drawn close, arms tucked in, sleepy expression, resting cat posture',
+  ),
+  PromptPackageData(
+    id: 'feline_sitting_head_tilt',
+    name: '坐姿歪頭好奇',
+    description: '坐姿配歪頭，呈現好奇反應。',
+    category: '休息與撒嬌',
+    tags: const <String>[],
+    naturalPrompt:
+        'upright sitting pose, head tilt, curious expression, attentive eyes, inquisitive feline behavior',
+  ),
+  PromptPackageData(
+    id: 'feline_light_jump_reach',
+    name: '輕跳抓東西',
+    description: '輕跳起來，向上伸手抓取物件。',
+    category: '玩耍與探索',
+    tags: const <String>[],
+    naturalPrompt:
+        'light jumping pose, arms reaching upward, playful expression, agile feline motion, trying to catch something',
+  ),
+  PromptPackageData(
+    id: 'feline_defensive_fluffed_up',
+    name: '炸毛防備',
+    description: '背部微拱、尾巴炸毛的警戒姿態。',
+    category: '警覺與防備',
+    tags: const <String>[],
+    naturalPrompt:
+        'defensive posture, back slightly arched, shoulders raised, tense expression, tail fluffed up, wary feline reaction',
+  ),
+  PromptPackageData(
+    id: 'feline_standing_tail_wrapped',
+    name: '尾巴繞腿安靜站立',
+    description: '安靜站著，尾巴自然繞住腿部。',
+    category: '休息與撒嬌',
+    tags: const <String>[],
+    naturalPrompt:
+        'standing pose, calm expression, tail wrapped around one leg, quiet feline composure',
+  ),
+];
+
+/// A complete, editable pose set for the Lala-style wolf-girl prompt pack.
+/// These are natural descriptions on purpose: each kit preserves the intended
+/// relation between hands, tail, legs, and upper body without forcing animal
+/// traits onto a character who has not selected them.
+const lalaWolfGirlPosePackages = <PromptPackageData>[
+  PromptPackageData(
+    id: 'wolf_girl_kneeling_paws',
+    name: '雙膝跪地・可愛爪子',
+    description: '直身跪姿，雙手在臉側張開、掌心朝前，手指微彎做爪子動作。',
+    category: '撒嬌與玩耍',
+    naturalPrompt:
+        'kneeling on both knees, knees together, upper body upright, both hands open beside face, open palms facing forward, fingers spread apart and slightly curled like animal paws, elbows slightly bent, head slightly tilted, bright gentle smile, light forward lean',
+    naturalPromptZh:
+        '雙膝跪地，膝蓋併攏，上身直立，雙手在臉側張開、掌心朝前，手指分開並微彎成動物爪子的樣子，手肘微彎，頭部微微傾斜，露出明亮溫柔的笑容，身體輕微前傾',
+    legacyNaturalPrompts: [
+      'kneeling on both knees, knees together, upper body upright, both hands raised beside face in a playful pawing gesture, elbows slightly bent, head slightly tilted, bright gentle smile, light forward lean',
+    ],
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_side_lying_tail_hug',
+    name: '側躺蜷腿・抱尾巴',
+    description: '側躺蜷起雙腿，雙手抱住蓬鬆尾巴。',
+    category: '休息與撒嬌',
+    naturalPrompt:
+        'lying on side, body gently curled, knees bent, both arms hugging a large fluffy tail, relaxed shoulders, soft smile, calm sleepy expression',
+    naturalPromptZh: '側躺，身體輕輕蜷曲，雙膝彎曲，雙臂抱著一條蓬鬆的大尾巴，肩膀放鬆，輕柔微笑，表情平靜而睏倦',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_supine_stretch',
+    name: '仰躺・伸懶腰',
+    description: '仰躺伸展雙臂，一腿伸直、一腿微彎。',
+    category: '伸展與放鬆',
+    naturalPrompt:
+        'lying on back, both arms stretched above head, one leg straight and the other knee slightly bent, relaxed smile, full-body stretch',
+    naturalPromptZh: '仰躺，雙臂伸展到頭頂上方，一腿伸直、另一腿膝蓋微彎，放鬆微笑並伸展全身',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_prone_looking_back',
+    name: '趴躺・回頭看',
+    description: '俯臥以手肘支撐，雙腳踝交叉並回頭望向鏡頭。',
+    category: '撒嬌與玩耍',
+    naturalPrompt:
+        'lying on stomach, elbows supporting upper body, ankles crossed, head turned back toward viewer, chin resting on one hand, gentle smile',
+    naturalPromptZh: '俯臥，以雙肘撐起上半身，雙腳踝交叉，回頭望向觀者，下巴靠在一隻手上並溫柔微笑',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_half_side_lying',
+    name: '半側躺・撐起上身',
+    description: '單肘撐起上身，另一手自然放在大腿。',
+    category: '休息與撒嬌',
+    naturalPrompt:
+        'half side-lying pose, upper body propped up on one elbow, other hand resting on thigh, one knee bent, relaxed smile',
+    naturalPromptZh: '半側躺，上半身以單肘撐起，另一手放在大腿上，一側膝蓋彎曲並放鬆微笑',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_curled_tail_rest',
+    name: '蜷成一團・抱尾巴休息',
+    description: '蜷縮抱住蓬鬆尾巴，以臉頰貼著尾巴休息。',
+    category: '休息與撒嬌',
+    naturalPrompt:
+        'curled-up resting pose, knees drawn close, both arms hugging a large fluffy tail, cheek resting against tail, peaceful sleepy expression',
+    naturalPromptZh: '蜷縮休息，雙膝靠近身體，雙臂抱著一條蓬鬆的大尾巴，臉頰靠在尾巴上，露出平靜睏倦的表情',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_forest_supine_tail_hug',
+    name: '森林用・平躺抱尾巴',
+    description: '平躺抱尾巴的寧靜姿勢；可搭配森林空地、斑駁日光與柔和景深。',
+    category: '森林情境',
+    naturalPrompt:
+        'lying flat on back, both arms hugging a large fluffy tail across chest, legs relaxed, peaceful smile, relaxed forest-resting pose',
+    naturalPromptZh: '平躺仰臥，雙臂把一條蓬鬆的大尾巴抱在胸前，雙腿放鬆並平靜微笑，呈現森林中休息的放鬆姿勢',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_howling',
+    name: '仰頭嚎叫',
+    description: '站立仰頭張口嚎叫，尾巴向後延伸。',
+    category: '聲音與耳尾動態',
+    naturalPrompt:
+        'standing, head tilted up, open mouth, howling, chest lifted, arms relaxed at sides, tail extended behind',
+    naturalPromptZh: '站立，頭部仰起，張開嘴巴嚎叫，胸口挺起，雙臂自然垂在兩側，尾巴向後延伸。',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_alert_ear_wiggle',
+    name: '立耳側聽・耳朵晃動',
+    description: '豎起耳朵聆聽側方聲音，一手放到耳後。',
+    category: '聲音與耳尾動態',
+    naturalPrompt:
+        'standing still, ears perked and wiggling, head turned to the side, one hand cupped behind ear, alert eyes, tail held still',
+    naturalPromptZh: '站定不動，耳朵豎起並微微晃動，頭轉向側邊，一手攏在耳後，眼神警覺，尾巴保持不動。',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_sniffing_ground',
+    name: '低身嗅聞・追蹤氣味',
+    description: '壓低身體靠近地面嗅聞，做出追蹤氣味的動作。',
+    category: '警覺與偵察',
+    naturalPrompt:
+        'crouching low, leaning forward, sniffing the ground, one hand near the floor, attentive eyes, tail held level behind body',
+    naturalPromptZh: '低身蹲伏，向前傾靠近地面嗅聞，一手靠近地板，眼神專注，尾巴平舉在身體後方。',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_pouncing_forward',
+    name: '向前飛撲・張爪',
+    description: '躍起向前撲出，雙手伸向前方做張開的爪子動作。',
+    category: '奔跑與追逐',
+    naturalPrompt:
+        'midair, pouncing forward, both hands reaching ahead with open claw pose, knees bent, tail lifted high, excited expression',
+    naturalPromptZh: '躍在半空中向前飛撲，雙手向前伸出做張開的爪子姿勢，膝蓋彎曲，尾巴高高揚起，神情興奮。',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_running_chase',
+    name: '快速奔跑・追逐',
+    description: '身體前傾快速奔跑，尾巴隨動作向後飄揚。',
+    category: '奔跑與追逐',
+    naturalPrompt:
+        'running, body leaning forward, arms pumping, ears swept back, tail streaming behind, determined expression',
+    naturalPromptZh: '快速奔跑，身體向前傾，雙臂擺動，耳朵稍微往後，尾巴在身後飄揚，神情堅定。',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_play_bow',
+    name: '玩耍鞠躬・尾巴翹起',
+    description: '前身壓低、後身微抬的邀玩姿勢，尾巴揚起。',
+    category: '撒嬌與玩耍',
+    naturalPrompt:
+        'playful bow, knees bent low, upper body lowered, hips raised slightly, both hands on ground, tail raised, bright smile',
+    naturalPromptZh: '做出邀請玩耍的鞠躬姿勢，膝蓋壓低，上身放低，臀部微微抬起，雙手放在地面，尾巴揚起，露出明亮笑容。',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_scratching_ear',
+    name: '抓耳朵・歪頭',
+    description: '坐姿抓撓其中一側耳後，耳朵隨動作微晃。',
+    category: '聲音與耳尾動態',
+    naturalPrompt:
+        'sitting, scratching behind one ear, head tilted, ear wiggle, relaxed smile, tail curled beside body',
+    naturalPromptZh: '坐著，抓撓其中一側耳朵後方，頭微微傾斜，耳朵晃動，露出放鬆的笑容，尾巴捲在身側。',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_chasing_tail',
+    name: '追著尾巴轉圈',
+    description: '轉身伸手追向自己的尾巴，呈現活潑玩耍感。',
+    category: '撒嬌與玩耍',
+    naturalPrompt:
+        'turning around, one hand reaching toward own tail, tail wagging in a loose curve, playful smile, light stepping motion',
+    naturalPromptZh: '轉身，一手伸向自己的尾巴，尾巴以鬆弛弧線搖動，露出俏皮笑容，腳步輕快地移動。',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_holding_tail_standing',
+    name: '站立抱尾巴・害羞',
+    description: '站姿雙手抱著尾巴，一腿微彎的靦腆動作。',
+    category: '撒嬌與玩耍',
+    naturalPrompt:
+        'standing, holding own tail with both hands in front, one knee slightly bent, shoulders drawn in, bashful smile',
+    naturalPromptZh: '站立，雙手在身前抱住自己的尾巴，一側膝蓋微彎，肩膀微微內收，露出靦腆笑容。',
+  ),
+  PromptPackageData(
+    id: 'wolf_girl_tail_wag_greeting',
+    name: '搖尾迎接・揮手',
+    description: '開心搖尾巴並抬手揮動的迎接動作。',
+    category: '聲音與耳尾動態',
+    naturalPrompt:
+        'standing, tail wagging, one hand waving, other hand at side, ears perked, bright welcoming smile',
+    naturalPromptZh: '站立，尾巴搖動，一手揮手、另一手自然垂下，耳朵豎起，露出明亮親切的笑容。',
+  ),
+];
+
+/// Sixteen all-ages shared interaction kits. These belong after all
+/// individual character blocks and only appear when at least two people exist.
+const felineInteractionPackages = <PromptPackageData>[
+  PromptPackageData(
+    id: 'feline_piggyback',
+    name: '被揹在背上',
+    description: '雙手環住對方肩膀的揹人互動。',
+    category: '抱持與依偎',
+    tags: const <String>[],
+    naturalPrompt:
+        'being carried piggyback, arms around the other person\'s shoulders, legs wrapped lightly, cheerful expression, playful clingy interaction',
+  ),
+  PromptPackageData(
+    id: 'feline_princess_carry',
+    name: '被公主抱',
+    description: '被穩穩抱起的親密互動。',
+    category: '抱持與依偎',
+    tags: const <String>[],
+    naturalPrompt:
+        'being carried in bridal carry, relaxed posture, soft smile, trusting expression, affectionate interaction',
+  ),
+  PromptPackageData(
+    id: 'feline_sitting_on_shoulder',
+    name: '坐在對方肩膀上',
+    description: '坐在對方肩膀上的高處姿態。',
+    category: '抱持與依偎',
+    tags: const <String>[],
+    naturalPrompt:
+        'sitting on the other person\'s shoulders, balanced posture, playful smile, elevated perch-like pose, cat-like confidence',
+  ),
+  PromptPackageData(
+    id: 'feline_held_in_arms',
+    name: '被抱在懷裡',
+    description: '蜷在對方懷中的安心感。',
+    category: '抱持與依偎',
+    tags: const <String>[],
+    naturalPrompt:
+        'being held in the other person\'s arms, curled-up posture, relaxed expression, cozy affectionate interaction',
+  ),
+  PromptPackageData(
+    id: 'feline_cheek_rub',
+    name: '蹭對方臉頰',
+    description: '用臉頰輕蹭對方的親近互動。',
+    category: '撒嬌互動',
+    tags: const <String>[],
+    naturalPrompt:
+        'cheek rubbing against the other person, affectionate body language, half-closed eyes, gentle smile, cat-like nuzzling',
+  ),
+  PromptPackageData(
+    id: 'feline_resting_on_lap',
+    name: '伏在對方腿上',
+    description: '放鬆伏在對方腿上的依賴感。',
+    category: '抱持與依偎',
+    tags: const <String>[],
+    naturalPrompt:
+        'resting across the other person\'s lap, relaxed posture, content expression, comfortable cat-like closeness',
+  ),
+  PromptPackageData(
+    id: 'feline_clinging_to_arm',
+    name: '抱著對方手臂不放',
+    description: '緊抱對方手臂的黏人動作。',
+    category: '撒嬌互動',
+    tags: const <String>[],
+    naturalPrompt:
+        'clinging to the other person\'s arm, hugging the arm closely, cute needy expression, affectionate feline attachment',
+  ),
+  PromptPackageData(
+    id: 'feline_leaning_on_shoulder',
+    name: '依偎在對方肩旁',
+    description: '安靜靠著對方肩膀。',
+    category: '抱持與依偎',
+    tags: const <String>[],
+    naturalPrompt:
+        'leaning against the other person\'s shoulder, relaxed posture, soft smile, affectionate quiet interaction',
+  ),
+  PromptPackageData(
+    id: 'feline_head_patting',
+    name: '被摸頭舒服瞇眼',
+    description: '被摸頭的放鬆親近互動。',
+    category: '撒嬌互動',
+    tags: const <String>[],
+    naturalPrompt:
+        'two people, one person gently patting the other person\'s head, headpat, hand on another\'s head, the petted person has half-closed eyes and a pleased smile, relaxed affectionate interaction',
+    naturalPromptZh: '雙人互動：其中一人輕拍另一人的頭頂；被摸頭的人半瞇眼並露出滿足微笑，呈現放鬆親近感。',
+  ),
+  PromptPackageData(
+    id: 'feline_being_lifted_up',
+    name: '被抱高高',
+    description: '被對方抱起舉高的輕快互動。',
+    category: '抱持與依偎',
+    tags: const <String>[],
+    naturalPrompt:
+        'being lifted up by the other person, surprised happy expression, limbs slightly raised, playful interaction, light feline energy',
+  ),
+  PromptPackageData(
+    id: 'feline_chin_hold_affection',
+    name: '被托著下巴撒嬌',
+    description: '下巴被輕托的親密互動。',
+    category: '撒嬌互動',
+    tags: const <String>[],
+    naturalPrompt:
+        'chin being gently held, looking up at the other person, soft affectionate expression, cat-like dependence',
+  ),
+  PromptPackageData(
+    id: 'feline_lying_on_back',
+    name: '趴在對方背上',
+    description: '整個人放鬆趴在對方背上。',
+    category: '抱持與依偎',
+    tags: const <String>[],
+    naturalPrompt:
+        'lying across the other person\'s back, relaxed posture, playful clingy pose',
+  ),
+  PromptPackageData(
+    id: 'feline_sitting_on_lap',
+    name: '坐在對方膝上',
+    description: '自然坐在對方膝上的親近姿態。',
+    category: '抱持與依偎',
+    tags: const <String>[],
+    naturalPrompt:
+        'sitting on the other person\'s lap, upright posture, relaxed smile, affectionate interaction',
+  ),
+  PromptPackageData(
+    id: 'feline_holding_hands_leaning',
+    name: '牽手時靠過去',
+    description: '牽著手並向對方靠近。',
+    category: '撒嬌互動',
+    tags: const <String>[],
+    naturalPrompt:
+        'holding hands, leaning closer to the other person, gentle smile, affectionate body language',
+  ),
+  PromptPackageData(
+    id: 'feline_lying_beside_belly_up',
+    name: '躺在對方身邊翻肚',
+    description: '躺在身邊、展現信任與放鬆。',
+    category: '撒嬌互動',
+    tags: const <String>[],
+    naturalPrompt:
+        'lying beside the other person, belly exposed, trusting pose, relaxed limbs, playful dependence',
+  ),
+  PromptPackageData(
+    id: 'feline_forehead_nuzzle',
+    name: '用額頭頂對方',
+    description: '額頭輕貼，主動親近對方。',
+    category: '撒嬌互動',
+    tags: const <String>[],
+    naturalPrompt:
+        'gently pressing forehead against the other person, affectionate feline gesture, soft smile, intimate cat-like interaction',
+  ),
+];
+
+/// Shared, role-aware interaction packages. These remain gender-neutral and
+/// are emitted after all character blocks, so they describe the relation
+/// between two people rather than incorrectly attaching the whole interaction
+/// to one character. The Chinese titles use A/B only to make each role clear.
+const twoPersonInteractionPackages = <PromptPackageData>[
+  PromptPackageData(
+    id: 'two_person_crouching_headpat',
+    name: 'A 蹲姿・B 摸頭歪頭',
+    description: 'A 蹲姿抬頭；B 靠近輕摸 A 的頭頂並微微歪頭。A 可自行搭配貓獸人特徵。',
+    category: '摸頭／安撫',
+    naturalPrompt:
+        'two people, one person crouching and looking up, another person bending close and gently patting the crouching person\'s head, headpat, hand on another\'s head, the patting person with a gentle head tilt, clear two-person interaction',
+    naturalPromptZh:
+        '雙人互動：人物 A 蹲姿抬頭；人物 B 靠近並輕拍 A 的頭頂，B 的頭部微微傾斜。若 A 選了貓獸人特徵，即為貓獸人蹲姿被摸頭。',
+  ),
+  PromptPackageData(
+    id: 'two_person_seated_headpat',
+    name: 'A 坐姿・B 摸頭安撫',
+    description: 'A 坐著；B 站在或蹲在身側，手掌輕拍 A 的頭頂。',
+    category: '摸頭／安撫',
+    naturalPrompt:
+        'two people, one person sitting, another person close beside them and gently patting the seated person\'s head, headpat, hand on another\'s head, looking at another, soft reassuring smile',
+    naturalPromptZh: '雙人互動：人物 A 坐著；人物 B 靠在身側並輕拍 A 的頭頂，兩人彼此注視並帶有安撫微笑。',
+  ),
+  PromptPackageData(
+    id: 'two_person_standing_headpat',
+    name: 'A 站姿・B 摸頭安撫',
+    description: '兩人站立面對面；B 輕摸 A 的頭頂。',
+    category: '摸頭／安撫',
+    naturalPrompt:
+        'two people standing face-to-face, one person gently patting the other person\'s head, headpat, hand on another\'s head, looking at another, affectionate comforting interaction',
+    naturalPromptZh: '雙人互動：人物 A 與 B 面對面站立；B 輕拍 A 的頭頂，兩人互相注視，呈現親近安撫感。',
+  ),
+  PromptPackageData(
+    id: 'two_person_lying_belly_rub',
+    name: 'A 仰躺露肚・B 摸肚子',
+    description: 'A 仰躺露出腹部；B 在身旁蹲下並輕柔撫摸腹部。',
+    category: '摸肚子／安撫',
+    naturalPrompt:
+        'two people, one person lying on back with stomach exposed, another person kneeling beside them and gently rubbing the lying person\'s stomach, belly rub, hand on another\'s stomach, relaxed limbs, gentle smile',
+    naturalPromptZh: '雙人互動：人物 A 仰躺露出腹部；人物 B 在旁邊跪下，輕柔撫摸 A 的腹部。保留放鬆四肢與溫柔微笑。',
+  ),
+  PromptPackageData(
+    id: 'two_person_seated_belly_rub',
+    name: 'A 坐地・B 摸肚子關心',
+    description: 'A 坐在地面；B 蹲在旁邊，以手掌輕摸 A 的腹部。',
+    category: '摸肚子／安撫',
+    naturalPrompt:
+        'two people, one person sitting on floor, another person crouching beside them and gently rubbing their stomach, belly rub, hand on another\'s stomach, looking at another, caring expression',
+    naturalPromptZh: '雙人互動：人物 A 坐在地面；人物 B 蹲在旁邊並輕柔撫摸 A 的腹部，兩人互看，呈現關心神情。',
+  ),
+  PromptPackageData(
+    id: 'two_person_two_hands_headpat',
+    name: 'A 低頭・B 雙手揉頭髮',
+    description: 'A 微微低頭；B 以雙手輕柔揉撫 A 的頭髮。',
+    category: '摸頭／安撫',
+    naturalPrompt:
+        'two people, one person slightly lowering their head while another person gently rubs their hair with both hands, headpat, hands on another\'s head, touching hair, soft affectionate interaction',
+    naturalPromptZh: '雙人互動：人物 A 微微低頭；人物 B 以雙手輕柔揉撫 A 的頭髮，呈現柔和親近感。',
+  ),
+  PromptPackageData(
+    id: 'two_person_cheek_caress',
+    name: 'A 靠近・B 輕撫臉頰',
+    description: '兩人面對面靠近；B 以一手輕觸 A 的臉頰。',
+    category: '臉部／安撫',
+    naturalPrompt:
+        'two people facing each other closely, one person gently touching the other person\'s cheek, hand on another\'s cheek, looking at another, soft smile, intimate comforting interaction',
+    naturalPromptZh: '雙人互動：人物 A 與 B 面對面靠近；人物 B 以一手輕撫 A 的臉頰，彼此注視並帶有柔和微笑。',
+  ),
+];
+
+const _poseBases = <_PackagePart>[
+  _PackagePart('upright', '端正站姿', ['standing', 'standing straight']),
+  _PackagePart('one_leg', '單腳站姿', ['standing', 'standing on one leg']),
+  _PackagePart('crossed_legs', '交叉腿站姿', ['standing with crossed legs']),
+  _PackagePart('tiptoes', '踮腳站姿', ['standing on tiptoes']),
+  _PackagePart('chair', '椅上坐姿', ['sitting', 'sitting on chair']),
+  _PackagePart('sofa', '沙發坐姿', ['sitting', 'sitting on sofa']),
+  _PackagePart('floor', '地板坐姿', ['sitting', 'sitting on floor']),
+  _PackagePart('bed', '床邊坐姿', ['sitting', 'sitting on bed']),
+  _PackagePart('kneeling', '端正跪姿', ['kneeling']),
+  _PackagePart('reclining', '仰躺姿勢', ['lying on back']),
+];
+const _poseGestures = <_PackagePart>[
+  _PackagePart('hand_hip', '手放腰間', ['hand on hip']),
+  _PackagePart('hand_head', '手扶頭部', ['hand on head']),
+  _PackagePart('wave', '揮手', ['waving']),
+  _PackagePart('peace', '和平手勢', ['peace sign']),
+  _PackagePart('point', '指向前方', ['pointing']),
+  _PackagePart('arms_up', '雙手舉起', ['arms up']),
+  _PackagePart('hands_back', '雙手在背後', ['hands behind back']),
+  _PackagePart('one_hand_up', '單手舉起', ['one hand raised']),
+  _PackagePart('fist', '握拳', ['fist']),
+  _PackagePart('hands_together', '雙手合十', ['hands together']),
+];
+// 臉部表情保留為可個別選取的標籤，不提供快速套裝。

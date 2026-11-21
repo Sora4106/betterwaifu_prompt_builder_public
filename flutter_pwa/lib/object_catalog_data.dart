@@ -1,0 +1,829 @@
+import 'public_catalog_data.dart';
+
+/// Additional everyday visual props. They retain the base 物件 group so
+/// existing saved selections and object-interaction actions remain compatible;
+/// the UI classifies them through their stable ID prefixes.
+const objectCatalogTags = <CatalogTagData>[
+  // 家具／室內（14）
+  CatalogTagData(
+      id: 'obj_furniture_armchair',
+      group: '物件',
+      zh: '扶手椅',
+      en: 'armchair',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_stool', group: '物件', zh: '凳子', en: 'stool', order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_bench', group: '物件', zh: '長椅', en: 'bench', order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_desk', group: '物件', zh: '書桌', en: 'desk', order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_dining_table',
+      group: '物件',
+      zh: '餐桌',
+      en: 'dining table',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_coffee_table',
+      group: '物件',
+      zh: '茶几',
+      en: 'coffee table',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_nightstand',
+      group: '物件',
+      zh: '床頭櫃',
+      en: 'nightstand',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_bookshelf',
+      group: '物件',
+      zh: '書架',
+      en: 'bookshelf',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_wardrobe',
+      group: '物件',
+      zh: '衣櫃',
+      en: 'wardrobe',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_dresser',
+      group: '物件',
+      zh: '抽屜櫃',
+      en: 'dresser',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_floor_mirror',
+      group: '物件',
+      zh: '全身鏡',
+      en: 'floor mirror',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_floor_lamp',
+      group: '物件',
+      zh: '立燈',
+      en: 'floor lamp',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_chandelier',
+      group: '物件',
+      zh: '吊燈',
+      en: 'chandelier',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_furniture_rug', group: '物件', zh: '地毯', en: 'rug', order: 4),
+
+  // 動物／寵物（8）— 實際動物夥伴，與獸耳、獸尾等人物特徵分開。
+  CatalogTagData(
+      id: 'obj_pet_cat',
+      group: '物件',
+      zh: '寵物貓',
+      en: 'cat',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_kitten',
+      group: '物件',
+      zh: '小貓',
+      en: 'kitten',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_dog',
+      group: '物件',
+      zh: '寵物狗',
+      en: 'dog',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_puppy',
+      group: '物件',
+      zh: '小狗',
+      en: 'puppy',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_rabbit',
+      group: '物件',
+      zh: '兔子',
+      en: 'rabbit',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_bird',
+      group: '物件',
+      zh: '小鳥',
+      en: 'bird',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_hamster',
+      group: '物件',
+      zh: '倉鼠',
+      en: 'hamster',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_ferret',
+      group: '物件',
+      zh: '雪貂',
+      en: 'ferret',
+      order: 4,
+      support: 'official'),
+
+  // 群體動物：作為場景中的生物／陪襯，不會改變人物數量。
+  CatalogTagData(
+      id: 'obj_pet_group_of_kittens',
+      group: '物件',
+      zh: '一群小貓',
+      en: 'group of kittens',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_group_of_cats',
+      group: '物件',
+      zh: '一群貓',
+      en: 'group of cats',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_group_of_penguins',
+      group: '物件',
+      zh: '一群企鵝',
+      en: 'group of penguins',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_group_of_puppies',
+      group: '物件',
+      zh: '一群小狗',
+      en: 'group of puppies',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_group_of_rabbits',
+      group: '物件',
+      zh: '一群兔子',
+      en: 'group of rabbits',
+      order: 4,
+      support: 'official'),
+  CatalogTagData(
+      id: 'obj_pet_flock_of_birds',
+      group: '物件',
+      zh: '一群小鳥',
+      en: 'flock of birds',
+      order: 4,
+      support: 'official'),
+
+  // 透明／玻璃建材（6）
+  CatalogTagData(
+      id: 'obj_glass_table',
+      group: '物件',
+      zh: '透明玻璃桌',
+      en: 'glass table',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_glass_wall',
+      group: '物件',
+      zh: '透明玻璃牆',
+      en: 'glass wall',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_glass_railing',
+      group: '物件',
+      zh: '透明玻璃欄杆',
+      en: 'glass railing',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_glass_floor',
+      group: '物件',
+      zh: '透明玻璃地板',
+      en: 'glass floor',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_glass_door',
+      group: '物件',
+      zh: '透明玻璃門',
+      en: 'glass door',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_glass_partition',
+      group: '物件',
+      zh: '透明玻璃隔間',
+      en: 'glass partition',
+      order: 4),
+
+  // 飲食／餐具（12）
+  CatalogTagData(
+      id: 'obj_food_bento', group: '物件', zh: '便當盒', en: 'bento', order: 4),
+  CatalogTagData(
+      id: 'obj_food_lunchbox',
+      group: '物件',
+      zh: '午餐盒',
+      en: 'lunchbox',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_food_tray', group: '物件', zh: '托盤', en: 'tray', order: 4),
+  CatalogTagData(
+      id: 'obj_food_teapot', group: '物件', zh: '茶壺', en: 'teapot', order: 4),
+  CatalogTagData(
+      id: 'obj_food_kettle', group: '物件', zh: '水壺', en: 'kettle', order: 4),
+  CatalogTagData(
+      id: 'obj_food_cocktail_glass',
+      group: '物件',
+      zh: '雞尾酒杯',
+      en: 'cocktail glass',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_food_frying_pan',
+      group: '物件',
+      zh: '平底鍋',
+      en: 'frying pan',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_food_cutting_board',
+      group: '物件',
+      zh: '砧板',
+      en: 'cutting board',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_food_rice_ball',
+      group: '物件',
+      zh: '飯糰',
+      en: 'rice ball',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_food_sandwich',
+      group: '物件',
+      zh: '三明治',
+      en: 'sandwich',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_food_pizza', group: '物件', zh: '披薩', en: 'pizza', order: 4),
+
+  // 學習／藝術／音樂（14）
+  CatalogTagData(
+      id: 'obj_study_fountain_pen',
+      group: '物件',
+      zh: '鋼筆',
+      en: 'fountain pen',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_study_marker', group: '物件', zh: '麥克筆', en: 'marker', order: 4),
+  CatalogTagData(
+      id: 'obj_study_ruler', group: '物件', zh: '尺', en: 'ruler', order: 4),
+  CatalogTagData(
+      id: 'obj_study_scissors',
+      group: '物件',
+      zh: '剪刀',
+      en: 'scissors',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_study_clipboard',
+      group: '物件',
+      zh: '寫字板',
+      en: 'clipboard',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_study_chalk', group: '物件', zh: '粉筆', en: 'chalk', order: 4),
+  CatalogTagData(
+      id: 'obj_study_blackboard',
+      group: '物件',
+      zh: '黑板',
+      en: 'blackboard',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_study_paper', group: '物件', zh: '紙張', en: 'paper', order: 4),
+  CatalogTagData(
+      id: 'obj_study_letter', group: '物件', zh: '信件', en: 'letter', order: 4),
+  CatalogTagData(
+      id: 'obj_study_newspaper',
+      group: '物件',
+      zh: '報紙',
+      en: 'newspaper',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_study_map', group: '物件', zh: '地圖', en: 'map', order: 4),
+  CatalogTagData(
+      id: 'obj_study_globe', group: '物件', zh: '地球儀', en: 'globe', order: 4),
+  CatalogTagData(
+      id: 'obj_study_sketchbook',
+      group: '物件',
+      zh: '素描本',
+      en: 'sketchbook',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_study_paint_tube',
+      group: '物件',
+      zh: '顏料管',
+      en: 'paint tube',
+      order: 4),
+
+  // 科技／媒體（10）
+  CatalogTagData(
+      id: 'obj_tech_desktop_computer',
+      group: '物件',
+      zh: '桌上型電腦',
+      en: 'desktop computer',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tech_monitor', group: '物件', zh: '螢幕', en: 'monitor', order: 4),
+  CatalogTagData(
+      id: 'obj_tech_keyboard', group: '物件', zh: '鍵盤', en: 'keyboard', order: 4),
+  CatalogTagData(
+      id: 'obj_tech_mouse', group: '物件', zh: '滑鼠', en: 'mouse', order: 4),
+  CatalogTagData(
+      id: 'obj_tech_game_controller',
+      group: '物件',
+      zh: '遊戲手把',
+      en: 'game controller',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tech_handheld_console',
+      group: '物件',
+      zh: '掌上遊戲機',
+      en: 'handheld game console',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tech_television',
+      group: '物件',
+      zh: '電視',
+      en: 'television',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tech_projector',
+      group: '物件',
+      zh: '投影機',
+      en: 'projector',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tech_speaker', group: '物件', zh: '喇叭', en: 'speaker', order: 4),
+  CatalogTagData(
+      id: 'obj_tech_drone', group: '物件', zh: '無人機', en: 'drone', order: 4),
+
+  // 運動／戶外（12）
+  CatalogTagData(
+      id: 'obj_sport_tennis_ball',
+      group: '物件',
+      zh: '網球',
+      en: 'tennis ball',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_sport_golf_club',
+      group: '物件',
+      zh: '高爾夫球桿',
+      en: 'golf club',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_sport_golf_ball',
+      group: '物件',
+      zh: '高爾夫球',
+      en: 'golf ball',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_sport_bowling_ball',
+      group: '物件',
+      zh: '保齡球',
+      en: 'bowling ball',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_sport_dumbbell',
+      group: '物件',
+      zh: '啞鈴',
+      en: 'dumbbell',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_sport_barbell', group: '物件', zh: '槓鈴', en: 'barbell', order: 4),
+  CatalogTagData(
+      id: 'obj_sport_jump_rope',
+      group: '物件',
+      zh: '跳繩',
+      en: 'jump rope',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_sport_boxing_gloves',
+      group: '物件',
+      zh: '拳擊手套',
+      en: 'boxing gloves',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_sport_punching_bag',
+      group: '物件',
+      zh: '沙包',
+      en: 'punching bag',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_sport_yoga_mat',
+      group: '物件',
+      zh: '瑜伽墊',
+      en: 'yoga mat',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_sport_surfboard',
+      group: '物件',
+      zh: '衝浪板',
+      en: 'surfboard',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_sport_fishing_rod',
+      group: '物件',
+      zh: '釣竿',
+      en: 'fishing rod',
+      order: 4),
+
+  // 工具／科學／遊戲（12）
+  CatalogTagData(
+      id: 'obj_tool_hammer', group: '物件', zh: '鐵鎚', en: 'hammer', order: 4),
+  CatalogTagData(
+      id: 'obj_tool_wrench', group: '物件', zh: '扳手', en: 'wrench', order: 4),
+  CatalogTagData(
+      id: 'obj_tool_screwdriver',
+      group: '物件',
+      zh: '螺絲起子',
+      en: 'screwdriver',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tool_pliers', group: '物件', zh: '鉗子', en: 'pliers', order: 4),
+  CatalogTagData(
+      id: 'obj_tool_measuring_tape',
+      group: '物件',
+      zh: '捲尺',
+      en: 'measuring tape',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tool_sewing_machine',
+      group: '物件',
+      zh: '縫紉機',
+      en: 'sewing machine',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tool_watering_can',
+      group: '物件',
+      zh: '澆水壺',
+      en: 'watering can',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tool_toolbox', group: '物件', zh: '工具箱', en: 'toolbox', order: 4),
+  CatalogTagData(
+      id: 'obj_tool_microscope',
+      group: '物件',
+      zh: '顯微鏡',
+      en: 'microscope',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tool_telescope',
+      group: '物件',
+      zh: '望遠鏡',
+      en: 'telescope',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tool_test_tube',
+      group: '物件',
+      zh: '試管',
+      en: 'test tube',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_tool_chessboard',
+      group: '物件',
+      zh: '西洋棋盤',
+      en: 'chessboard',
+      order: 4),
+
+  // 武器／奇幻（25）
+  CatalogTagData(
+      id: 'obj_fantasy_dagger', group: '物件', zh: '匕首', en: 'dagger', order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_axe', group: '物件', zh: '斧頭', en: 'axe', order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_spear', group: '物件', zh: '長矛', en: 'spear', order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_lance', group: '物件', zh: '騎槍', en: 'lance', order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_scythe', group: '物件', zh: '鐮刀', en: 'scythe', order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_crossbow',
+      group: '物件',
+      zh: '十字弓',
+      en: 'crossbow',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_pistol', group: '物件', zh: '手槍', en: 'pistol', order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_magic_book',
+      group: '物件',
+      zh: '魔法書',
+      en: 'magic book',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_crystal_ball',
+      group: '物件',
+      zh: '水晶球',
+      en: 'crystal ball',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_potion_bottle',
+      group: '物件',
+      zh: '藥水瓶',
+      en: 'potion bottle',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_treasure_chest',
+      group: '物件',
+      zh: '寶箱',
+      en: 'treasure chest',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_crown', group: '物件', zh: '王冠', en: 'crown', order: 4),
+  CatalogTagData(
+      id: 'obj_fantasy_ornate_magic_staff',
+      group: '物件',
+      zh: '華麗魔法法杖',
+      en: 'ornate magic staff',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_mage_staff',
+      group: '物件',
+      zh: '奇幻法師法杖',
+      en: 'fantasy mage staff',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_elemental_master_staff',
+      group: '物件',
+      zh: '元素師的法杖',
+      en: 'ornate elemental magic staff with a long white and pink gemstone shaft, purple accents, jewel-topped decorative staff head, glowing crystal, official-style mage weapon',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_elemental_magic_staff',
+      group: '物件',
+      zh: '元素魔法法杖',
+      en: 'elemental magic staff',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_long_magical_staff',
+      group: '物件',
+      zh: '長柄魔法法杖',
+      en: 'long magical staff',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_magical_staff',
+      group: '物件',
+      zh: '魔法法杖',
+      en: 'magical staff',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_white_pink_staff',
+      group: '物件',
+      zh: '白粉法杖',
+      en: 'white and pink staff',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_white_pink_gemstone_staff',
+      group: '物件',
+      zh: '白粉寶石法杖',
+      en: 'white and pink gemstone staff',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_purple_staff_accents',
+      group: '物件',
+      zh: '紫色法杖點綴',
+      en: 'purple staff accents',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_gemstone_staff',
+      group: '物件',
+      zh: '寶石法杖',
+      en: 'gemstone staff',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_jewel_topped_staff',
+      group: '物件',
+      zh: '寶石頂端法杖',
+      en: 'jewel-topped staff',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_decorative_staff_head',
+      group: '物件',
+      zh: '裝飾法杖頂端',
+      en: 'decorative staff head',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_glowing_crystal',
+      group: '物件',
+      zh: '發光水晶',
+      en: 'glowing crystal',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_fantasy_official_mage_weapon',
+      group: '物件',
+      zh: '原作風格法師武器',
+      en: 'official-style mage weapon',
+      order: 4,
+      support: 'description'),
+
+  // 交通／旅行（12）
+  CatalogTagData(
+      id: 'obj_travel_suitcase',
+      group: '物件',
+      zh: '行李箱',
+      en: 'suitcase',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_travel_rolling_suitcase',
+      group: '物件',
+      zh: '拉桿行李箱',
+      en: 'rolling suitcase',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_travel_rectangular_satchel',
+      group: '物件',
+      zh: '長方形書包',
+      en: 'rectangular satchel',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_travel_shopping_bag',
+      group: '物件',
+      zh: '購物袋',
+      en: 'shopping bag',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_travel_passport',
+      group: '物件',
+      zh: '護照',
+      en: 'passport',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_travel_boarding_pass',
+      group: '物件',
+      zh: '登機證',
+      en: 'boarding pass',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_travel_guidebook',
+      group: '物件',
+      zh: '旅遊指南',
+      en: 'travel guidebook',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_travel_train', group: '物件', zh: '火車', en: 'train', order: 4),
+  CatalogTagData(
+      id: 'obj_travel_bus', group: '物件', zh: '公車', en: 'bus', order: 4),
+  CatalogTagData(
+      id: 'obj_travel_taxi', group: '物件', zh: '計程車', en: 'taxi', order: 4),
+  CatalogTagData(
+      id: 'obj_travel_boat', group: '物件', zh: '小船', en: 'boat', order: 4),
+  CatalogTagData(
+      id: 'obj_travel_hot_air_balloon',
+      group: '物件',
+      zh: '熱氣球',
+      en: 'hot air balloon',
+      order: 4),
+
+  // 日常／裝飾（11）
+  CatalogTagData(
+      id: 'obj_daily_potted_plant',
+      group: '物件',
+      zh: '盆栽',
+      en: 'potted plant',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_daily_vase', group: '物件', zh: '花瓶', en: 'vase', order: 4),
+  CatalogTagData(
+      id: 'obj_daily_picture_frame',
+      group: '物件',
+      zh: '相框',
+      en: 'picture frame',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_daily_wall_clock',
+      group: '物件',
+      zh: '掛鐘',
+      en: 'wall clock',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_daily_alarm_clock',
+      group: '物件',
+      zh: '鬧鐘',
+      en: 'alarm clock',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_daily_tissue_box',
+      group: '物件',
+      zh: '面紙盒',
+      en: 'tissue box',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_daily_remote_control',
+      group: '物件',
+      zh: '遙控器',
+      en: 'remote control',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_daily_flashlight',
+      group: '物件',
+      zh: '手電筒',
+      en: 'flashlight',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_daily_broom', group: '物件', zh: '掃把', en: 'broom', order: 4),
+  CatalogTagData(
+      id: 'obj_daily_laundry_basket',
+      group: '物件',
+      zh: '洗衣籃',
+      en: 'laundry basket',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_daily_kite', group: '物件', zh: '風箏', en: 'kite', order: 4),
+  CatalogTagData(
+      id: 'obj_daily_pumpkin', group: '物件', zh: '南瓜', en: 'pumpkin', order: 4),
+  CatalogTagData(
+      id: 'obj_daily_halloween_bucket',
+      group: '物件',
+      zh: '萬聖節糖果桶',
+      en: 'halloween bucket',
+      order: 4),
+  CatalogTagData(
+      id: 'obj_daily_spider_web',
+      group: '物件',
+      zh: '蜘蛛網',
+      en: 'spider web',
+      order: 4),
+  // 衣物與貼身衣物以「手持」描述，避免與角色正在穿著的服裝欄位混淆。
+  CatalogTagData(
+      id: 'obj_clothing_held_clothes',
+      group: '物件',
+      zh: '手持衣物',
+      en: 'clothes in hand',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_clothing_held_shirt',
+      group: '物件',
+      zh: '手持襯衫',
+      en: 'shirt in hand',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_clothing_held_dress',
+      group: '物件',
+      zh: '手持連身裙',
+      en: 'dress in hand',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_clothing_held_skirt',
+      group: '物件',
+      zh: '手持裙子',
+      en: 'skirt in hand',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_clothing_held_shorts',
+      group: '物件',
+      zh: '手持短褲',
+      en: 'shorts in hand',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_clothing_held_stockings',
+      group: '物件',
+      zh: '手持長襪',
+      en: 'stockings in hand',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_clothing_held_pantyhose',
+      group: '物件',
+      zh: '手持連褲襪',
+      en: 'pantyhose in hand',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_clothing_held_socks',
+      group: '物件',
+      zh: '手持襪子',
+      en: 'socks in hand',
+      order: 4,
+      support: 'description'),
+  CatalogTagData(
+      id: 'obj_clothing_held_high_heels',
+      group: '物件',
+      zh: '手持高跟鞋',
+      en: 'high heel shoes in hand',
+      order: 4,
+      support: 'description'),
+];

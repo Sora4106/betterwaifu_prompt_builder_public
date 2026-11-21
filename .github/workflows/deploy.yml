@@ -1,0 +1,105 @@
+name: Build and deploy BetterWaifu PWA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Auto append version for new changes
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if ($env:EVENT_NAME -ne 'push') {
+            Write-Host 'Manual build only; version is not changed.'
+            exit 0
+          }
+          $files = git diff-tree --no-commit-id --name-only -r $env:COMMIT_SHA
+          if ($files -contains 'version.json' -or $files -contains 'CHANGELOG.md') {
+            Write-Host 'This commit already contains version metadata; keeping its version.'
+            exit 0
+          }
+          $note = if ([string]::IsNullOrWhiteSpace($env:COMMIT_MESSAGE)) { '自動偵測專案更新' } else { "自動偵測：$($env:COMMIT_MESSAGE.Split("`n")[0])" }
+          pwsh -NoProfile -File tools/update-version.ps1 -Notes $note
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add version.json CHANGELOG.md flutter_pwa/lib/app_version.dart flutter_pwa/pubspec.yaml
+          git commit -m 'chore: auto append version [skip ci]'
+          git push
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Validate code and prompt catalogs
+        working-directory: flutter_pwa
+        run: |
+          flutter pub get
+          # Newer Flutter releases report the framework's ongoing Material
+          # package migration as an informational deprecation. Keep real
+          # errors and warnings fatal, but do not block Pages deployment on
+          # that upstream informational notice.
+          flutter analyze --no-fatal-infos
+          dart run tool/check_lower_body_color_channels.dart
+          dart run tool/check_finger_gestures.dart
+          dart run tool/check_expression_catalog.dart
+          dart run tool/check_single_person_poses.dart
+          dart run tool/check_prompt_package_translations.dart
+          dart run tool/check_pwa_update_flow.dart
+          dart run tool/check_public_all_ages.dart
+
+      - name: Build Flutter PWA
+        working-directory: flutter_pwa
+        run: |
+          flutter build web --release --no-pub --base-href "/${{ github.event.repository.name }}/"
+
+      - name: Prepare versioned PWA cache
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File tools/update-pwa-cache.ps1 -BuildDirectory flutter_pwa/build/web
+
+      - name: Assemble Pages site
+        run: |
+          mkdir -p _site
+          cp -R flutter_pwa/build/web/. _site/
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

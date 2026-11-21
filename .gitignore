@@ -1,0 +1,27 @@
+# Flutter/Dart generated files
+.dart_tool/
+.packages
+.pub-cache/
+build/
+flutter_pwa/build/
+flutter_pwa/.dart_tool/
+
+# The public edition builds only the Flutter PWA.  Legacy standalone files and
+# the retired private catalogue/test sources are intentionally not published.
+standalone_web/
+flutter_pwa/lib/expanded_tag_data.dart
+flutter_pwa/tool/check_adult_act_catalog.dart
+flutter_pwa/tool/check_body_fluid_catalog.dart
+flutter_pwa/tool/validate_outfit_references.dart
+tools/_strip_public_adult_blocks.ps1
+
+# IDE and OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Local environment files
+.env
+*.log
