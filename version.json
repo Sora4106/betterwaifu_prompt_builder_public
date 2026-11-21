@@ -1,8 +1,15 @@
 {
-  "version": "1.0.1",
-  "build": 2,
-  "label": "1.0.1+2",
+  "version": "1.0.2",
+  "build": 3,
+  "label": "1.0.2+3",
   "history": [
+    {
+      "version": "1.0.2",
+      "build": 3,
+      "label": "1.0.2+3",
+      "date": "2026-11-21",
+      "notes": "自動偵測：Create all-ages public prompt builder v1.0.1+2"
+    },
     {
       "version": "1.0.1",
       "build": 2,

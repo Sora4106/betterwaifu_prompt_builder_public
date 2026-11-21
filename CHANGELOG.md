@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2+3 - 2026-11-21
+
+- 自動偵測：Create all-ages public prompt builder v1.0.1+2
+
+
 ## 1.0.1+2 — 2026-11-21
 
 - 改用公開版專用的安全標籤與服裝資料目錄。
