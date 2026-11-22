@@ -27848,12 +27848,23 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
           ),
         );
 
+    Widget noticeLink(
+            IconData icon, String chinese, String english, String url) =>
+        OutlinedButton.icon(
+          onPressed: () => html.window.open(url, '_blank'),
+          icon: Icon(icon, size: 17),
+          label: Text(UiLanguageController.choose(chinese, english)),
+        );
+
     return Card(
       margin: EdgeInsets.zero,
       child: ExpansionTile(
-        leading: const Icon(Icons.gavel_outlined),
+        leading: const Icon(Icons.privacy_tip_outlined),
         title: Text(
-          UiLanguageController.choose('網站使用聲明', 'Site notice'),
+          UiLanguageController.choose(
+            '網站使用與隱私聲明',
+            'Site notice & privacy',
+          ),
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
         subtitle: Text(UiLanguageController.choose(
@@ -27869,8 +27880,13 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
           ),
           noticeItem(
             Icons.verified_user_outlined,
-            '一般設定與提示詞只儲存在目前瀏覽器的 localStorage。只有在使用公開角色查詢或外部連結時，瀏覽器才會連線到對應的第三方服務；清除網站資料會移除本機記憶。',
-            'Regular settings and prompts are stored only in this browser’s localStorage. The browser contacts a third-party service only when you use public character lookup or an external link. Clearing site data removes local memory.',
+            '一般設定與提示詞只儲存在目前瀏覽器的 localStorage。使用公開角色查詢、外部連結或廣告時，瀏覽器會連線到對應的第三方服務；清除網站資料會移除本機記憶。',
+            'Regular settings and prompts are stored only in this browser’s localStorage. The browser contacts third-party services when you use public character lookup, external links, or advertising. Clearing site data removes local memory.',
+          ),
+          noticeItem(
+            Icons.ads_click_outlined,
+            '本站使用 Google AdSense。Google 與其他第三方廣告供應商可能放置或讀取 Cookie，並使用網路信標、IP 位址或其他識別碼進行廣告投放、個人化、成效衡量與防止濫用；實際處理會依所在地、同意選擇與廣告設定而異。',
+            'This site uses Google AdSense. Google and other third-party advertising vendors may place or read cookies and use web beacons, IP addresses, or other identifiers for ad delivery, personalization, measurement, and abuse prevention. Processing varies by location, consent choices, and ad settings.',
           ),
           noticeItem(
             Icons.account_balance_outlined,
@@ -27886,6 +27902,30 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
             Icons.warning_amber_outlined,
             '本工具與標籤資料依現況提供，不保證生成結果、翻譯、資料正確性、服務持續可用性或特定模型相容性。',
             'This tool and its tag data are provided as-is, without guarantees about generation results, translations, data accuracy, continued availability, or compatibility with a particular model.',
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              noticeLink(
+                Icons.policy_outlined,
+                '完整隱私權政策',
+                'Full privacy policy',
+                Uri.base.resolve('privacy.html').toString(),
+              ),
+              noticeLink(
+                Icons.manage_accounts_outlined,
+                'Google 廣告設定',
+                'Google Ads Settings',
+                'https://adssettings.google.com/',
+              ),
+              noticeLink(
+                Icons.open_in_new,
+                'Google 如何使用資料',
+                'How Google uses data',
+                'https://policies.google.com/technologies/partner-sites',
+              ),
+            ],
           ),
         ],
       ),

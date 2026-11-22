@@ -293,4 +293,29 @@ void main() {
       isNot(contains("label: Text('\${item['zh']} / \${item['en']}')")),
     );
   });
+
+  test('AdSense publisher, ads.txt, and privacy disclosure are configured', () {
+    const client = 'ca-pub-2900796832149095';
+    final index = File('web/index.html').readAsStringSync();
+    final ads = File('web/ads.txt').readAsStringSync().trim();
+    final privacy = File('web/privacy.html').readAsStringSync();
+
+    expect(
+      index,
+      contains('<meta name="google-adsense-account" content="$client">'),
+    );
+    expect(
+      index,
+      contains('adsbygoogle.js?client=$client'),
+    );
+    expect(index, contains('crossorigin="anonymous"'));
+    expect(
+      ads,
+      'google.com, pub-2900796832149095, DIRECT, f08c47fec0942fa0',
+    );
+    expect(privacy, contains('Google AdSense'));
+    expect(privacy, contains('cookies'));
+    expect(privacy, contains('policies.google.com/technologies/partner-sites'));
+    expect(privacy, isNot(contains('ca-pub-0000000000000000')));
+  });
 }

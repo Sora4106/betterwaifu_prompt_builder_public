@@ -1,10 +1,10 @@
-﻿const appVersion = '1.0.5';
-const appBuildNumber = 6;
-const appVersionLabel = '1.0.5+6';
+﻿const appVersion = '1.0.6';
+const appBuildNumber = 7;
+const appVersionLabel = '1.0.6+7';
 const appVersionHistory = <Map<String, String>>[
+  {'version': '1.0.6', 'build': '7', 'label': '1.0.6+7', 'date': '2026-11-22', 'notes': '加入 Google AdSense 自動廣告、網站驗證、ads.txt 與中英文隱私權政策。'},
   {'version': '1.0.5', 'build': '6', 'label': '1.0.5+6', 'date': '2026-11-22', 'notes': 'English-only Pose, selected summaries, clothing categories, and negative-tag labels.'},
   {'version': '1.0.4', 'build': '5', 'label': '1.0.4+5', 'date': '2026-11-22', 'notes': '完成英文介面全內容與選項標籤英文化、修正動漫選擇名稱、複製鍵改為 P／N，並隱藏公開版影片功能。'},
   {'version': '1.0.3', 'build': '4', 'label': '1.0.3+4', 'date': '2026-11-21', 'notes': '新增首次語言選擇與可切換中英介面,中文標籤顯示中英，英文模式只顯示英文'},
   {'version': '1.0.2', 'build': '3', 'label': '1.0.2+3', 'date': '2026-11-21', 'notes': '自動偵測：Create all-ages public prompt builder v1.0.1+2'},
-  {'version': '1.0.1', 'build': '2', 'label': '1.0.1+2', 'date': '2026-11-21', 'notes': '公開版改用獨立安全資料目錄，全面過濾舊存檔、搜尋、反推與自由輸入中的限制內容。'},
 ];

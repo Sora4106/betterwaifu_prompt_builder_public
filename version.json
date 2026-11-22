@@ -1,8 +1,15 @@
 ﻿{
-    "version":  "1.0.5",
-    "build":  6,
-    "label":  "1.0.5+6",
+    "version":  "1.0.6",
+    "build":  7,
+    "label":  "1.0.6+7",
     "history":  [
+                    {
+                        "version":  "1.0.6",
+                        "build":  7,
+                        "label":  "1.0.6+7",
+                        "date":  "2026-11-22",
+                        "notes":  "加入 Google AdSense 自動廣告、網站驗證、ads.txt 與中英文隱私權政策。"
+                    },
                     {
                         "version":  "1.0.5",
                         "build":  6,

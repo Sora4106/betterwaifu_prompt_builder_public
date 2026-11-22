@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.0.6+7 - 2026-11-22
+
+- 加入 Google AdSense 自動廣告、網站驗證、ads.txt 與中英文隱私權政策。
+
+
 ## 1.0.5+6 - 2026-11-22
 
 - English-only Pose, selected summaries, clothing categories, and negative-tag labels.

@@ -18,3 +18,12 @@ flutter run -d chrome
 ```
 
 GitHub Pages 工作流程會在推送 `main` 後自動建置與部署網站。
+
+## Google AdSense
+
+- 發佈商：`ca-pub-2900796832149095`。
+- 自動廣告與網站驗證標籤位於 `flutter_pwa/web/index.html`。
+- 隱私權政策位於 `flutter_pwa/web/privacy.html`。
+- 授權賣方宣告位於 `flutter_pwa/web/ads.txt`。
+- AdSense 會從網域根目錄讀取 `/ads.txt`。GitHub Pages 專案網站目前部署在 `/betterwaifu_prompt_builder_public/`；若未使用自訂網域，還需要在 `sora4106.github.io` 根網站放置相同的 `ads.txt`，或改用指向本專案的自訂網域。
+- 上線前請在 AdSense 的「隱私權與訊息」啟用 Google CMP 或其他 Google 認證 CMP。
