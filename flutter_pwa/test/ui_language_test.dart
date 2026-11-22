@@ -94,6 +94,19 @@ void main() {
       '完整狀態 JSON 會分區保存已勾選標籤與各人物／服裝／姿勢的額外正向詞；匯入時會覆蓋並回填到原欄位。',
       '尚無儲存組合。按輸出結果右上角的書籤按鈕即可保存。',
       '網站使用聲明',
+      '服裝與穿脫狀態',
+      '官方精準',
+      '描述補充',
+      '衣種',
+      '剪裁',
+      '版型',
+      '長度',
+      '材質',
+      '裝飾',
+      '圖案',
+      '顏色',
+      '整體描述',
+      '穿脫',
     ];
 
     for (final source in sourceStrings) {
@@ -208,5 +221,76 @@ void main() {
     expect(source, contains("icon: const Text('N',"));
     expect(source, isNot(contains("icon: const Text('POS',")));
     expect(source, isNot(contains("icon: const Text('NEG',")));
+  });
+
+  test('all Pose and outfit data categories are English-only in English mode',
+      () {
+    final labels = <String>{};
+    final promptPackages =
+        File('lib/prompt_package_data.dart').readAsStringSync();
+    final outfitData =
+        File('lib/public_outfit_reference_data.dart').readAsStringSync();
+    final attachedData =
+        File('lib/attached_outfit_reference_data.dart').readAsStringSync();
+    final mainSource = File('lib/main.dart').readAsStringSync();
+
+    final categoryPattern = RegExp(r'''category:\s*["']([^"']+)["']''');
+    for (final source in [promptPackages, outfitData]) {
+      labels.addAll(
+        categoryPattern.allMatches(source).map((match) => match.group(1)!),
+      );
+    }
+    labels.addAll(
+      RegExp(r"category\s*=\s*'([^']+)'")
+          .allMatches(attachedData)
+          .map((match) => match.group(1)!),
+    );
+    labels.addAll(
+      RegExp(
+        r'^(?:##\s+)?[A-Z]\.\s*(.+?)(?=\s*\d{3,4}[–-]\d{2,4}$)',
+        multiLine: true,
+      ).allMatches(attachedData).map((match) => match.group(1)!.trim()),
+    );
+
+    final poseSections = mainSource.substring(
+      mainSource.indexOf('const _organizedPosePickerSections'),
+      mainSource.indexOf('bool _isSharedActionGroup'),
+    );
+    labels.addAll(
+      RegExp(r"'([^'\$]*[\u3400-\u9fff][^'\$]*)'")
+          .allMatches(poseSections)
+          .map((match) => match.group(1)!),
+    );
+
+    final untranslated = labels
+        .where(
+            (label) => containsCjk.hasMatch(UiLanguageController.uiText(label)))
+        .toList()
+      ..sort();
+    expect(
+      untranslated.join('\n'),
+      isEmpty,
+      reason: 'A Pose or outfit category still contains Chinese.',
+    );
+  });
+
+  test('collapsed summaries and negative chips use language-aware labels', () {
+    final source = File('lib/main.dart').readAsStringSync();
+    final progressive = source.substring(
+      source.indexOf('Widget _progressiveBuilder()'),
+      source.indexOf('// ignore: unused_element',
+          source.indexOf('Widget _progressiveBuilder()')),
+    );
+
+    expect(progressive, isNot(contains('.map((tag) => tag.zh)')));
+    expect(progressive, contains('.map(_tagDisplayLabel)'));
+    expect(
+      source,
+      contains("UiLanguageController.tagLabel(item['zh']!, item['en']!)"),
+    );
+    expect(
+      source,
+      isNot(contains("label: Text('\${item['zh']} / \${item['en']}')")),
+    );
   });
 }

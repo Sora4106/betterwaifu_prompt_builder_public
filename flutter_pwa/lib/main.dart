@@ -9522,7 +9522,18 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
     ];
   }
 
-  List<String> _fixedCharacterFeatureSummaryZh() {
+  String _generatedOutputDisplayLabel(_GeneratedOutputTag output) {
+    final english = _moderationSafePromptTag(output.en).trim();
+    if (_isEnglishUi) return english;
+    return output.zh.trim().ifEmpty(english);
+  }
+
+  String _joinDisplayLabels(Iterable<String> labels) => labels
+      .map((label) => label.trim())
+      .where((label) => label.isNotEmpty)
+      .join(_isEnglishUi ? ', ' : '、');
+
+  List<String> _fixedCharacterFeatureSummary() {
     final result = <String>[];
     final seen = <String>{};
     for (var index = 0; index < _personSlots.length; index++) {
@@ -9531,8 +9542,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
           final tag = _tagsById[id];
           return tag != null && _isFixedCharacterFeatureTag(tag);
         });
-        if (!fixed || output.zh.trim().isEmpty) continue;
-        final value = output.zh.trim();
+        if (!fixed) continue;
+        final value = _generatedOutputDisplayLabel(output);
+        if (value.isEmpty) continue;
         if (seen.add(value)) result.add(value);
       }
     }
@@ -11791,6 +11803,28 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
     return result;
   }
 
+  List<String> _characterDisplayNew() {
+    if (!_isEnglishUi) return _characterChineseNew();
+    final result = <String>[];
+    for (var index = 0; index < _personSlots.length; index++) {
+      final slot = _personSlots[index];
+      if (!slot.detailed) {
+        result.add('No character details');
+        continue;
+      }
+      if (slot.mode == '動漫角色' && _characterForNew(slot) == null) {
+        result.add('No anime character selected');
+        continue;
+      }
+      final tags = _characterOutputTagsForSlot(slot, index)
+          .map(_generatedOutputDisplayLabel)
+          .where((label) => label.isNotEmpty)
+          .toList();
+      result.addAll(tags.isEmpty ? const ['Original character'] : tags);
+    }
+    return result;
+  }
+
   List<_GeneratedOutputTag> _generatedPositiveTags() {
     final result = <_GeneratedOutputTag>[];
     for (var index = 0; index < _personSlots.length; index++) {
@@ -12925,7 +12959,9 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
           children: _sharedCharacterNegativeCatalog.map((item) {
             return Chip(
               avatar: const Icon(Icons.person_outline, size: 16),
-              label: Text('${item['zh']} / ${item['en']}'),
+              label: Text(
+                UiLanguageController.tagLabel(item['zh']!, item['en']!),
+              ),
             );
           }).toList(),
         ),
@@ -22492,7 +22528,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               children: categories.map((category) {
                 final selected = category == activeCategory;
                 return ChoiceChip(
-                  label: Text(category),
+                  label: Text(UiLanguageController.uiText(category)),
                   selected: selected,
                   selectedColor: tone,
                   labelStyle: TextStyle(
@@ -22685,7 +22721,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
               children: categories.map((category) {
                 final selected = category == activeCategory;
                 return ChoiceChip(
-                  label: Text(category),
+                  label: Text(UiLanguageController.uiText(category)),
                   selected: selected,
                   selectedColor: tone,
                   labelStyle: TextStyle(
@@ -23605,7 +23641,7 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
                     size: 18,
                     color: selected ? const Color(0xff171326) : categoryTone,
                   ),
-                  label: Text(category),
+                  label: Text(UiLanguageController.uiText(category)),
                   selected: selected,
                   selectedColor: categoryTone,
                   labelStyle: TextStyle(
@@ -27073,11 +27109,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
       () => _stepCard(
           0,
           '場景與畫面',
-          _selectedTags
-              .where((tag) => _isSceneVisualPromptGroup(tag.group))
-              .map((tag) => tag.zh)
-              .join('、')
-              .ifEmpty('尚未選擇'),
+          _joinDisplayLabels(_selectedTags
+                  .where((tag) => _isSceneVisualPromptGroup(tag.group))
+                  .map(_tagDisplayLabel))
+              .ifEmpty(UiLanguageController.choose('尚未選擇', 'Not selected')),
           Icons.landscape_outlined,
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -27111,16 +27146,26 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
       () => _stepCard(
           1,
           '角色資料',
-          _characterChineseNew().join('、').ifEmpty('每個人物都要設定或選擇不需細節'),
+          _joinDisplayLabels(_characterDisplayNew()).ifEmpty(
+            UiLanguageController.choose(
+              '每個人物都要設定或選擇不需細節',
+              'Configure every character or choose no details',
+            ),
+          ),
           Icons.badge_outlined,
           _stepCharacters(),
           onClear: () => _clearStepTags(1)),
       () => _stepCard(
           2,
           '固定角色外觀',
-          _fixedCharacterFeatureSummaryZh()
-              .join('、')
-              .ifEmpty(_personSelectedIds.isEmpty ? '每位人物分別設定' : '尚未選擇'),
+          _joinDisplayLabels(_fixedCharacterFeatureSummary()).ifEmpty(
+            _personSelectedIds.isEmpty
+                ? UiLanguageController.choose(
+                    '每位人物分別設定',
+                    'Configure each character separately',
+                  )
+                : UiLanguageController.choose('尚未選擇', 'Not selected'),
+          ),
           Icons.face_retouching_natural,
           _stepPersonTagPicker([
             '髮長',
@@ -27143,62 +27188,68 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
       () => _stepCard(
           3,
           '服裝與穿脫狀態',
-          _personSelectedIds.values
-              .expand((ids) => _allTags.where((tag) => ids.contains(tag.id)))
-              .where((tag) =>
-                  [
-                    '上衣',
-                    '褲子',
-                    '短褲',
-                    '裙子',
-                    '內衣',
-                    '胸罩',
-                    '內褲',
-                    '襪子',
-                    '鞋子',
-                    '服裝',
-                    _cosplayGroup,
-                    '配件',
-                    '配件顏色',
-                    '帽子顏色',
-                    '眼鏡顏色',
-                    '上衣風格',
-                    '下身風格',
-                    '上衣顏色',
-                    '下身顏色',
-                    '褲子顏色',
-                    '短褲顏色',
-                    '裙子顏色',
-                    '服裝顏色',
-                    '褲子邊線色',
-                    '短褲邊線色',
-                    '裙子邊線色',
-                    '帽子邊線色',
-                    '眼鏡邊線色',
-                    '服裝細節',
-                    '服裝細節顏色',
-                    '服裝材質',
-                    '穿脫狀態'
-                  ].contains(tag.group) ||
-                  _isScopedClothingGroup(tag.group))
-              .map((tag) => tag.zh)
-              .join('、')
-              .ifEmpty('每位人物分別設定'),
+          _joinDisplayLabels(_personSelectedIds.values
+                  .expand(
+                      (ids) => _allTags.where((tag) => ids.contains(tag.id)))
+                  .where((tag) =>
+                      [
+                        '上衣',
+                        '褲子',
+                        '短褲',
+                        '裙子',
+                        '內衣',
+                        '胸罩',
+                        '內褲',
+                        '襪子',
+                        '鞋子',
+                        '服裝',
+                        _cosplayGroup,
+                        '配件',
+                        '配件顏色',
+                        '帽子顏色',
+                        '眼鏡顏色',
+                        '上衣風格',
+                        '下身風格',
+                        '上衣顏色',
+                        '下身顏色',
+                        '褲子顏色',
+                        '短褲顏色',
+                        '裙子顏色',
+                        '服裝顏色',
+                        '褲子邊線色',
+                        '短褲邊線色',
+                        '裙子邊線色',
+                        '帽子邊線色',
+                        '眼鏡邊線色',
+                        '服裝細節',
+                        '服裝細節顏色',
+                        '服裝材質',
+                        '穿脫狀態'
+                      ].contains(tag.group) ||
+                      _isScopedClothingGroup(tag.group))
+                  .map(_tagDisplayLabel))
+              .ifEmpty(UiLanguageController.choose(
+            '每位人物分別設定',
+            'Configure each character separately',
+          )),
           Icons.checkroom_outlined,
           _stepClothing(),
           onClear: () => _clearStepTags(3)),
       () => _stepCard(
           4,
           '姿勢與互動',
-          _personSelectedIds.values
-              .expand((ids) => _allTags.where((tag) => ids.contains(tag.id)))
-              .where(_isPoseWorkflowTag)
-              .map((tag) => tag.zh)
-              .followedBy(_selectedTags
-                  .where((tag) => _isSharedActionGroup(tag.group))
-                  .map((tag) => tag.zh))
-              .join('、')
-              .ifEmpty('每位人物分別設定'),
+          _joinDisplayLabels(_personSelectedIds.values
+                  .expand(
+                      (ids) => _allTags.where((tag) => ids.contains(tag.id)))
+                  .where(_isPoseWorkflowTag)
+                  .map(_tagDisplayLabel)
+                  .followedBy(_selectedTags
+                      .where((tag) => _isSharedActionGroup(tag.group))
+                      .map(_tagDisplayLabel)))
+              .ifEmpty(UiLanguageController.choose(
+            '每位人物分別設定',
+            'Configure each character separately',
+          )),
           Icons.accessibility_new,
           _stepCategorizedPersonTagPicker(_organizedPosePickerSections,
               nextLabel: '下一步：自行輸入',
@@ -27207,7 +27258,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
       () => _stepCard(
             5,
             '自行輸入',
-            '集中管理全域、共用與各人物的手動提示詞',
+            UiLanguageController.choose(
+              '集中管理全域、共用與各人物的手動提示詞',
+              'Manage global, shared, and per-character manual prompts in one place.',
+            ),
             Icons.edit_note_outlined,
             _stepManualInputs(),
             onClear: () => _clearStepTags(5),
@@ -27215,7 +27269,10 @@ class _PromptBuilderAppState extends State<PromptBuilderApp> {
       () => _stepCard(
             6,
             '品質與負面',
-            '設定 negative prompt 與品質前綴',
+            UiLanguageController.choose(
+              '設定 negative prompt 與品質前綴',
+              'Configure the negative prompt and quality prefix.',
+            ),
             Icons.tune,
             _stepFinal(),
             onClear: () => _clearStepTags(6),

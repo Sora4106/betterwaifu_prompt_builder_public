@@ -1,8 +1,15 @@
 ﻿{
-    "version":  "1.0.4",
-    "build":  5,
-    "label":  "1.0.4+5",
+    "version":  "1.0.5",
+    "build":  6,
+    "label":  "1.0.5+6",
     "history":  [
+                    {
+                        "version":  "1.0.5",
+                        "build":  6,
+                        "label":  "1.0.5+6",
+                        "date":  "2026-11-22",
+                        "notes":  "English-only Pose, selected summaries, clothing categories, and negative-tag labels."
+                    },
                     {
                         "version":  "1.0.4",
                         "build":  5,

@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 1.0.5+6 - 2026-11-22
+
+- English-only Pose, selected summaries, clothing categories, and negative-tag labels.
+
+
 ## 1.0.4+5 - 2026-11-22
 
 - 完成英文介面全內容與選項標籤英文化、修正動漫選擇名稱、複製鍵改為 P／N，並隱藏公開版影片功能。
